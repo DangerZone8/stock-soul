@@ -43,7 +43,7 @@ export function MarketMood() {
         {/* Bar */}
         <div className="w-full h-2 rounded-full bg-muted mb-3 overflow-hidden">
           <motion.div
-            className="h-full rounded-full bg-gradient-to-r from-destructive via-yellow-500 to-primary"
+            className="h-full rounded-full bg-gradient-to-r from-destructive via-accent to-primary"
             initial={{ width: 0 }}
             whileInView={{ width: `${MOOD_DATA.index}%` }}
             viewport={{ once: true }}
