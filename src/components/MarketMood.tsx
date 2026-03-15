@@ -52,8 +52,8 @@ export function MarketMood() {
         </div>
 
         <div className="flex justify-between text-[10px] font-mono text-muted-foreground">
-          <span>EXTREME FEAR</span>
-          <span>EXTREME GREED</span>
+          <span>0 — EXTREME FEAR 😱</span>
+          <span>100 — EXTREME GREED 🤑</span>
         </div>
 
         <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">

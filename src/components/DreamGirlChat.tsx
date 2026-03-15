@@ -129,7 +129,7 @@ export function DreamGirlChat() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Talk to Luna..."
+            placeholder="Talk to Kaia..."
             className="flex-1 bg-muted/50 border border-border/50 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors"
           />
           <button

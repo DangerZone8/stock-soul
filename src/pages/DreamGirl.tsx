@@ -46,7 +46,7 @@ const DreamGirl = () => {
               <div className="absolute inset-0 rounded-full animate-pulse bg-primary/5" />
             </div>
 
-            <h3 className="font-semibold text-lg mb-1">Luna</h3>
+            <h3 className="font-semibold text-lg mb-1">Kaia</h3>
             <p className="text-xs text-primary font-mono flex items-center gap-1 mb-4">
               <Sparkles className="w-3 h-3" />
               AI Trading Companion

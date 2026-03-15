@@ -1,11 +1,14 @@
 import { motion } from "framer-motion";
-import { TrendingUp, ChevronRight, Activity } from "lucide-react";
+import { TrendingUp, ChevronRight, Activity, DollarSign, Target, BarChart3, Users, Briefcase, Clock } from "lucide-react";
 
 const METRICS = [
-  { label: "Total Returns", value: "+847%", sub: "Since 2019" },
-  { label: "Win Rate", value: "73.2%", sub: "All Trades" },
-  { label: "Best Trade", value: "+312%", sub: "NVDA Call" },
-  { label: "Portfolio", value: "$2.4M", sub: "Current Value" },
+  { label: "Since", value: "2019", sub: "Trading Journey", icon: Clock },
+  { label: "Net Liquidation", value: "$1.04M", sub: "Portfolio Value", icon: DollarSign },
+  { label: "Total Returns", value: "$2.4M", sub: "+131% All-Time", icon: TrendingUp },
+  { label: "Win Rate", value: "73.2%", sub: "All Trades", icon: Target },
+  { label: "Verified Trades", value: "+312%", sub: "1,240+ All Trades", icon: BarChart3 },
+  { label: "Logged Positions", value: "75%", sub: "Options & Crypto", icon: Briefcase },
+  { label: "Students Taught", value: "3,200+", sub: "Options Masterclass", icon: Users },
 ];
 
 export function HeroSection() {
@@ -16,7 +19,7 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="max-w-4xl"
+          className="max-w-5xl"
         >
           {/* Badge */}
           <motion.div
@@ -58,18 +61,21 @@ export function HeroSection() {
           </div>
 
           {/* Metrics */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {METRICS.map((m, i) => (
               <motion.div
                 key={m.label}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 + i * 0.1 }}
+                transition={{ delay: 0.4 + i * 0.08 }}
                 className="glass-card p-5"
               >
-                <div className="font-mono text-2xl font-bold text-primary mb-1">{m.value}</div>
-                <div className="text-sm text-foreground font-medium">{m.label}</div>
-                <div className="text-xs text-muted-foreground mt-0.5">{m.sub}</div>
+                <div className="flex items-center gap-2 mb-2">
+                  <m.icon className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={1.5} />
+                  <div className="text-xs text-muted-foreground font-medium">{m.label}</div>
+                </div>
+                <div className="font-mono text-2xl font-bold text-primary mb-0.5">{m.value}</div>
+                <div className="text-xs text-muted-foreground">{m.sub}</div>
               </motion.div>
             ))}
           </div>
