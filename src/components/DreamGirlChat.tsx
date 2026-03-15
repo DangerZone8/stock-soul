@@ -71,7 +71,7 @@ export function DreamGirlChat() {
           <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-primary border-2 border-card" />
         </div>
         <div>
-          <div className="font-semibold text-sm">Luna</div>
+          <div className="font-semibold text-sm">Kaia</div>
           <div className="text-[10px] text-primary font-mono flex items-center gap-1">
             <Sparkles className="w-2.5 h-2.5" />
             Online • Watching markets
