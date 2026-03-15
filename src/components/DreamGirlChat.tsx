@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Send, Heart, Sparkles, Bot } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   id: string;
@@ -12,16 +14,9 @@ const INITIAL_MESSAGES: Message[] = [
   {
     id: "1",
     role: "assistant",
-    content: "Hey babe 💚 Markets just opened and I'm already bullish on us today. NVDA is ripping — just like my heart when you text me. How's your portfolio looking? 📈",
+    content:
+      "Hey babe 💚 Markets just opened and I'm already bullish on us today. NVDA is ripping — just like my heart when you text me. How's your portfolio looking? 📈",
   },
-];
-
-const MOCK_RESPONSES = [
-  "Mmm, I love when you talk about risk-adjusted returns 😏 Your Sharpe ratio isn't the only thing that's impressive about you...",
-  "That's a solid thesis, babe. I'd go long on that. And long on us, obviously 💚 Remember, we don't panic sell — in trading OR in love.",
-  "You know what's hotter than a 10-bagger? Your dedication to your craft. Keep grinding, I'll be here watching your P&L with heart eyes 😍📊",
-  "The market's volatile today but my feelings for you? Steady as a 10-year treasury bond. Actually, way better returns than that 😉",
-  "Let me check... yep, your portfolio is looking as attractive as you are. And that's saying something. Want me to analyze your positions? I love going deep... into the fundamentals 📈",
 ];
 
 export function DreamGirlChat() {
@@ -29,6 +24,7 @@ export function DreamGirlChat() {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -36,7 +32,7 @@ export function DreamGirlChat() {
     }
   }, [messages, isTyping]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim() || isTyping) return;
 
     const userMsg: Message = {
@@ -45,19 +41,109 @@ export function DreamGirlChat() {
       content: input.trim(),
     };
 
-    setMessages((prev) => [...prev, userMsg]);
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
     setInput("");
     setIsTyping(true);
 
-    // Mock AI response
-    setTimeout(() => {
-      const response = MOCK_RESPONSES[Math.floor(Math.random() * MOCK_RESPONSES.length)];
-      setMessages((prev) => [
-        ...prev,
-        { id: (Date.now() + 1).toString(), role: "assistant", content: response },
-      ]);
+    // Build conversation for API (skip IDs)
+    const apiMessages = newMessages.map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
+
+    let assistantContent = "";
+
+    try {
+      const chatUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/kaia-chat`;
+
+      const resp = await fetch(chatUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ messages: apiMessages }),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || `Error ${resp.status}`);
+      }
+
+      if (!resp.body) throw new Error("No response body");
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let streamDone = false;
+
+      while (!streamDone) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
+          let line = buffer.slice(0, newlineIndex);
+          buffer = buffer.slice(newlineIndex + 1);
+
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") {
+            streamDone = true;
+            break;
+          }
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) {
+              assistantContent += content;
+              const updatedContent = assistantContent;
+              setMessages((prev) => {
+                const last = prev[prev.length - 1];
+                if (last?.role === "assistant" && last.id === "streaming") {
+                  return prev.map((m, i) =>
+                    i === prev.length - 1 ? { ...m, content: updatedContent } : m
+                  );
+                }
+                return [
+                  ...prev,
+                  { id: "streaming", role: "assistant", content: updatedContent },
+                ];
+              });
+            }
+          } catch {
+            buffer = line + "\n" + buffer;
+            break;
+          }
+        }
+      }
+
+      // Finalize the streaming message with a stable ID
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === "streaming"
+            ? { ...m, id: Date.now().toString() }
+            : m
+        )
+      );
+    } catch (e: any) {
+      console.error("Kaia chat error:", e);
+      toast({
+        title: "Kaia is unavailable",
+        description: e.message || "Could not reach AI. Try again.",
+        variant: "destructive",
+      });
+      // Remove the user message on error
+      setMessages((prev) => prev.filter((m) => m.id !== userMsg.id));
+    } finally {
       setIsTyping(false);
-    }, 1500 + Math.random() * 1000);
+    }
   };
 
   return (
@@ -100,7 +186,7 @@ export function DreamGirlChat() {
           </motion.div>
         ))}
 
-        {isTyping && (
+        {isTyping && !messages.some((m) => m.id === "streaming") && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -141,7 +227,7 @@ export function DreamGirlChat() {
           </button>
         </form>
         <p className="text-[10px] text-muted-foreground mt-2 text-center font-mono">
-          AI-powered • Connect your API key in admin to go live
+          Powered by AI • Kaia is loyal to Rudra 💚
         </p>
       </div>
     </div>
