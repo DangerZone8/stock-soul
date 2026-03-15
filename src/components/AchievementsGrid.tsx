@@ -55,7 +55,7 @@ const ACHIEVEMENTS = [
     metricLabel: "Recovery Return",
     period: "2022–2023",
     teaser: "Navigated the crash by shorting overleveraged protocols and accumulating BTC at lows.",
-    description: "When LUNA/UST collapsed, I had already positioned short via put options on crypto-exposed stocks. Used profits to dollar-cost average into BTC between $16K-$20K. The combined strategy yielded 89% returns during what most traders considered a devastating period.",
+    description: "When ETH/UST collapsed, I had already positioned short via put options on crypto-exposed stocks. Used profits to dollar-cost average into BTC between $16K-$20K. The combined strategy yielded 89% returns during what most traders considered a devastating period.",
   },
 ];
 
