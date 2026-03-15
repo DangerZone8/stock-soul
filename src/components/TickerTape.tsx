@@ -1,15 +1,21 @@
 import { useEffect, useRef } from "react";
 import useStockData from "@/hooks/useStockData";
 
-const DEFAULT_SYMBOLS = ["TSLA", "NVDA", "MSFT", "AMZN", "GOOG", "META"];
+const DEFAULT_SYMBOLS = ["AAPL", "TSLA", "NVDA", "SPY", "AMZN", "MSFT", "GOOGL", "META", "BTC", "ETH", "QQQ", "AMD"];
 
 const FALLBACK_DATA = [
+  { symbol: "AAPL", value: "198.11", change: 0.9 },
   { symbol: "TSLA", value: "178.22", change: 2.3 },
   { symbol: "NVDA", value: "124.60", change: 1.8 },
-  { symbol: "MSFT", value: "415.30", change: -0.4 },
+  { symbol: "SPY", value: "512.40", change: 0.4 },
   { symbol: "AMZN", value: "182.50", change: 1.1 },
-  { symbol: "GOOG", value: "155.72", change: -0.7 },
+  { symbol: "MSFT", value: "415.30", change: -0.4 },
+  { symbol: "GOOGL", value: "155.72", change: -0.7 },
   { symbol: "META", value: "505.15", change: 3.2 },
+  { symbol: "BTC", value: "67,420", change: 2.1 },
+  { symbol: "ETH", value: "3,512", change: 1.5 },
+  { symbol: "QQQ", value: "438.90", change: 0.6 },
+  { symbol: "AMD", value: "164.30", change: -1.2 },
 ];
 
 function TickerItem({ symbol }: { symbol: string }) {

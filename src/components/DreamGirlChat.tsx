@@ -71,7 +71,7 @@ export function DreamGirlChat() {
           <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-primary border-2 border-card" />
         </div>
         <div>
-          <div className="font-semibold text-sm">Luna</div>
+          <div className="font-semibold text-sm">Kaia</div>
           <div className="text-[10px] text-primary font-mono flex items-center gap-1">
             <Sparkles className="w-2.5 h-2.5" />
             Online • Watching markets
@@ -129,7 +129,7 @@ export function DreamGirlChat() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Talk to Luna..."
+            placeholder="Talk to Kaia..."
             className="flex-1 bg-muted/50 border border-border/50 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors"
           />
           <button
