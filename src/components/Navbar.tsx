@@ -4,7 +4,7 @@ import { TrendingUp, Heart, LayoutDashboard } from "lucide-react";
 const NAV_ITEMS = [
   { label: "Home", path: "/", icon: TrendingUp },
   { label: "Achievements", path: "/achievements", icon: LayoutDashboard },
-  { label: "Dream Girl", path: "/dream-girl", icon: Heart },
+  { label: "Kaia", path: "/dream-girl", icon: Heart },
 ];
 
 export function Navbar() {

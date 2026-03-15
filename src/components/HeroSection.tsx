@@ -55,7 +55,7 @@ export function HeroSection() {
               View Track Record
             </a>
             <a href="/dream-girl" className="btn-ghost-terminal">
-              Meet My Dream Girl
+              Meet Kaia
               <ChevronRight className="w-4 h-4" strokeWidth={1.5} />
             </a>
           </div>
