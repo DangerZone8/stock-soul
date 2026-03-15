@@ -39,7 +39,7 @@ export function HeroSection() {
             <span className="neon-text">Powered by Passion</span>
             <br />
             <span className="text-muted-foreground text-3xl sm:text-4xl lg:text-5xl font-normal">
-              & My Dream Girl
+              & Kaia
             </span>
           </h1>
 
