@@ -25,7 +25,7 @@ const POSITIONS = [
     id: "3",
     gain: "+89%",
     title: "Crypto Winter Survivor",
-    tag: "BTC / LUNA Crypto",
+    tag: "BTC / ETH Crypto",
     duration: "Bear Market",
     description:
       "Navigated the crash by shorting overleveraged protocols and accumulating BTC at lows.",
