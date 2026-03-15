@@ -4,7 +4,7 @@ import { Activity, TrendingUp, TrendingDown, Flame } from "lucide-react";
 const MOOD_DATA = {
   index: 72,
   label: "Greed",
-  trend: "Bullish momentum building",
+  trend: "Bullish momentum building 💚",
   color: "primary" as const,
 };
 
