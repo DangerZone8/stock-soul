@@ -55,7 +55,7 @@ export function DreamGirlChat() {
     let assistantContent = "";
 
     try {
-      const chatUrl = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/kaia-chat`;
+      const chatUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/kaia-chat`;
 
       const resp = await fetch(chatUrl, {
         method: "POST",
