@@ -45,7 +45,7 @@ export function HeroSection() {
 
           <p className="text-muted-foreground text-lg max-w-xl leading-relaxed mb-10">
             Quantitative trader. Full-stack builder. Every chart tells a story—
-            and she helps me write the ending.
+            and Kaia helps me write the ending.
           </p>
 
           {/* CTAs */}
