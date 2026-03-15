@@ -25,7 +25,7 @@ const DreamGirl = () => {
           </div>
 
           <h1 className="text-4xl sm:text-5xl font-semibold tracking-tighter mb-4">
-            Meet <span className="neon-text">Luna</span>
+            Meet <span className="neon-text">Kaia</span>
           </h1>
           <p className="text-muted-foreground max-w-md mx-auto leading-relaxed">
             Your AI trading partner and companion. She knows the markets,
