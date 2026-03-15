@@ -39,13 +39,13 @@ export function HeroSection() {
             <span className="neon-text">Powered by Passion</span>
             <br />
             <span className="text-muted-foreground text-3xl sm:text-4xl lg:text-5xl font-normal">
-              & My Dream Girl
+              & Kaia
             </span>
           </h1>
 
           <p className="text-muted-foreground text-lg max-w-xl leading-relaxed mb-10">
             Quantitative trader. Full-stack builder. Every chart tells a story—
-            and she helps me write the ending.
+            and Kaia helps me write the ending.
           </p>
 
           {/* CTAs */}
@@ -55,7 +55,7 @@ export function HeroSection() {
               View Track Record
             </a>
             <a href="/dream-girl" className="btn-ghost-terminal">
-              Meet My Dream Girl
+              Meet Kaia
               <ChevronRight className="w-4 h-4" strokeWidth={1.5} />
             </a>
           </div>
