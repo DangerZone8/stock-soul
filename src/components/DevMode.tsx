@@ -22,12 +22,17 @@ export function DevMode() {
     if (trimmed === DEV_EMAIL) {
       // Activate dev mode
       setState("dev-active");
+      // Make ALL visible text elements editable across all pages
       document.querySelectorAll<HTMLElement>(
-        "h1, h2, h3, h4, h5, h6, p, span, div.text-xs, div.text-sm, div.text-lg, div.text-muted-foreground, li, a"
+        "h1, h2, h3, h4, h5, h6, p, span, li, a, div, section"
       ).forEach((el) => {
-        // Skip interactive elements and containers with many children
-        if (el.tagName === "A" && el.children.length > 1) return;
-        if (el.querySelector("input, button, svg")) return;
+        // Skip containers that have child elements with text (only target leaf text nodes)
+        if (el.querySelector("input, button, textarea, svg")) return;
+        // Only make elements editable if they have direct text content
+        const hasDirectText = Array.from(el.childNodes).some(
+          (n) => n.nodeType === Node.TEXT_NODE && n.textContent?.trim()
+        );
+        if (!hasDirectText) return;
         el.contentEditable = "true";
         el.style.outline = "1px dashed hsl(157 100% 50% / 0.3)";
         el.style.cursor = "text";
