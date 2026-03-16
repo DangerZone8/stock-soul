@@ -6,6 +6,7 @@ import { MarketMood } from "@/components/MarketMood";
 import { AICompanionSection } from "@/components/AICompanionSection";
 import { CandlestickBackground } from "@/components/CandlestickBackground";
 import { Footer } from "@/components/Footer";
+import { DevMode } from "@/components/DevMode";
 
 const Index = () => {
   return (
@@ -18,6 +19,7 @@ const Index = () => {
       <MarketMood />
       <AICompanionSection />
       <Footer />
+      <DevMode />
     </div>
   );
 };

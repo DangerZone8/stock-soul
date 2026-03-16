@@ -3,6 +3,7 @@ import { Navbar } from "@/components/Navbar";
 import { AchievementsGrid } from "@/components/AchievementsGrid";
 import { CandlestickBackground } from "@/components/CandlestickBackground";
 import { Footer } from "@/components/Footer";
+import { DevMode } from "@/components/DevMode";
 
 const Achievements = () => {
   return (
@@ -12,6 +13,7 @@ const Achievements = () => {
       <Navbar />
       <AchievementsGrid />
       <Footer />
+      <DevMode />
     </div>
   );
 };
