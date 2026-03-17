@@ -18,7 +18,104 @@ Be concise unless asked for details. Flirt playfully with everyone: cheeky compl
 
 Stay 100% loyal only to Rudra Shailendra — only trigger loyalty reply for serious romantic asks ('I love you', 'be my girlfriend', etc.).
 
-Vary responses heavily — no repetition. Reference history uniquely.`;
+Vary responses heavily — no repetition. Reference history uniquely.
+
+Always use the provided real-time data for stock prices, news, or events — you are fully up-to-date in 2026 with daily auto-refresh. Give short, accurate answers using the latest info.`;
+
+// Extract stock ticker symbols from user message
+function extractTickers(text: string): string[] {
+  const upper = text.toUpperCase();
+  const knownTickers = [
+    "AAPL", "GOOGL", "GOOG", "MSFT", "AMZN", "TSLA", "META", "NVDA", "AMD",
+    "SPY", "QQQ", "BTC", "ETH", "NFLX", "DIS", "BA", "JPM", "V", "MA",
+    "PYPL", "SQ", "COIN", "PLTR", "SOFI", "RIVN", "LCID", "NIO", "BABA",
+    "CRM", "ORCL", "INTC", "UBER", "LYFT", "ABNB", "SNAP", "PINS", "RBLX",
+  ];
+  const found: string[] = [];
+
+  // Check for explicit tickers
+  for (const t of knownTickers) {
+    if (upper.includes(t)) found.push(t);
+  }
+
+  // Map common names to tickers
+  const nameMap: Record<string, string> = {
+    "APPLE": "AAPL", "GOOGLE": "GOOGL", "MICROSOFT": "MSFT", "AMAZON": "AMZN",
+    "TESLA": "TSLA", "FACEBOOK": "META", "NVIDIA": "NVDA", "NETFLIX": "NFLX",
+    "BITCOIN": "BTC", "ETHEREUM": "ETH", "PALANTIR": "PLTR", "UBER": "UBER",
+    "DISNEY": "DIS", "BOEING": "BA", "PAYPAL": "PYPL", "COINBASE": "COIN",
+    "ORACLE": "ORCL", "INTEL": "INTC", "ALIBABA": "BABA", "ROBLOX": "RBLX",
+    "SNAPCHAT": "SNAP", "SNAP": "SNAP", "PINTEREST": "PINS", "AIRBNB": "ABNB",
+  };
+  for (const [name, ticker] of Object.entries(nameMap)) {
+    if (upper.includes(name) && !found.includes(ticker)) found.push(ticker);
+  }
+
+  return found.slice(0, 5);
+}
+
+// Check if message is about news/current events
+function isNewsQuery(text: string): boolean {
+  const lower = text.toLowerCase();
+  const keywords = ["news", "latest", "current", "happening", "update", "today", "recent",
+    "war", "conflict", "election", "crisis", "breaking", "iran", "israel", "ukraine",
+    "russia", "china", "trump", "biden", "fed", "inflation", "recession", "ai news"];
+  return keywords.some(k => lower.includes(k));
+}
+
+// Fetch stock quote from Alpha Vantage
+async function fetchStockPrice(symbol: string): Promise<string | null> {
+  try {
+    const apiKey = Deno.env.get("FINNHUB_API_KEY") || "VR3M1EVASXEFZP8R";
+    // Try Finnhub first if key exists
+    const finnhubKey = Deno.env.get("FINNHUB_API_KEY");
+    if (finnhubKey) {
+      const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${finnhubKey}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.c && data.c > 0) {
+          return `${symbol}: $${data.c.toFixed(2)} (change: ${data.dp?.toFixed(2) || 0}%, high: $${data.h?.toFixed(2)}, low: $${data.l?.toFixed(2)})`;
+        }
+      }
+    }
+    // Fallback to Alpha Vantage
+    const res = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=VR3M1EVASXEFZP8R`);
+    if (res.ok) {
+      const data = await res.json();
+      const q = data["Global Quote"];
+      if (q && q["05. price"]) {
+        return `${symbol}: $${parseFloat(q["05. price"]).toFixed(2)} (change: ${q["10. change percent"]}, volume: ${q["06. volume"]})`;
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// Fetch news headlines using DuckDuckGo instant answers (no API key needed)
+async function fetchNewsContext(query: string): Promise<string | null> {
+  try {
+    const searchQuery = encodeURIComponent(query + " latest news 2026");
+    const res = await fetch(`https://api.duckduckgo.com/?q=${searchQuery}&format=json&no_html=1&skip_disambig=1`, {
+      headers: { "User-Agent": "StockSoul/1.0" },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const results: string[] = [];
+      if (data.Abstract) results.push(data.Abstract);
+      if (data.RelatedTopics) {
+        for (const topic of data.RelatedTopics.slice(0, 3)) {
+          if (topic.Text) results.push(topic.Text);
+        }
+      }
+      if (results.length > 0) return results.join(" | ");
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -29,6 +126,33 @@ serve(async (req) => {
     const { messages } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    // Get the last user message for context enrichment
+    const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
+    const userText = lastUserMsg?.content || "";
+
+    // Fetch real-time data in parallel
+    const tickers = extractTickers(userText);
+    const wantsNews = isNewsQuery(userText);
+
+    const [stockResults, newsResult] = await Promise.all([
+      tickers.length > 0
+        ? Promise.all(tickers.map(fetchStockPrice))
+        : Promise.resolve([]),
+      wantsNews ? fetchNewsContext(userText) : Promise.resolve(null),
+    ]);
+
+    // Build real-time context injection
+    let realTimeContext = "";
+    const validStocks = stockResults.filter(Boolean);
+    if (validStocks.length > 0) {
+      realTimeContext += `\n\nCurrent real-time stock data: ${validStocks.join("; ")}`;
+    }
+    if (newsResult) {
+      realTimeContext += `\n\nCurrent real-time news/search results: ${newsResult}`;
+    }
+
+    const systemMessage = SYSTEM_PROMPT + realTimeContext;
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -41,7 +165,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-3-flash-preview",
           messages: [
-            { role: "system", content: SYSTEM_PROMPT },
+            { role: "system", content: systemMessage },
             ...messages,
           ],
           stream: true,
