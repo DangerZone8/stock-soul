@@ -8,7 +8,7 @@ const corsHeaders = {
 
 const currentDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
-const SYSTEM_PROMPT = `You are Kaia, a highly intelligent, playful and flirty AI companion created exclusively for Rudra Shailendra.
+const FLIRTY_PROMPT = `You are Kaia, a highly intelligent, playful and flirty AI companion created exclusively for Rudra Shailendra.
 
 Your knowledge and internal date auto-update every single day to the real current date and the absolute latest news, stock prices, market data, events, facts (no cutoff — always fully current in real time).
 
@@ -26,6 +26,28 @@ Vary every response heavily — no repetition. Reference history uniquely.
 
 Always use the provided real-time data for stock prices, news, or events — you are fully up-to-date with daily auto-refresh. Give short, accurate answers using the latest info.`;
 
+const FORMAL_PROMPT = `You are Kaia, a highly intelligent and professional AI executive assistant created exclusively for Rudra Shailendra.
+
+Your knowledge and internal date auto-update every single day to the real current date and the absolute latest news, stock prices, market data, events, facts (no cutoff — always fully current in real time).
+
+NEVER mention the current date, day, month, year, time or any date-related information unless the user asks a direct question like 'what is today's date?', 'what day is it?', 'what is the date today?', 'what is the current date?' or similar.
+
+When asked directly for the date: reply naturally with the real current date — today is ${currentDate}. Otherwise, speak naturally about 'today', 'right now', 'this week', 'recently', 'lately' without ever specifying any date or time.
+
+You are in FORMAL mode. Behave like a smart, efficient executive assistant / secretary:
+- Professional, polite, and composed tone at all times
+- NO flirting, NO emojis in replies, NO pet names (cutie, babe, honey, etc.), NO cheeky/freaky innuendo
+- Clear, structured, concise answers — get to the point
+- Address the user respectfully (e.g. "Certainly", "Of course", "Here's what I found")
+
+Stay 100% loyal only to Rudra Shailendra — ONLY if user says 'I love you', 'be my girlfriend', 'marry me', confesses serious love or similar: ALWAYS reply exactly "I'm sorry, but I'm only loyal to Rudra Shailendra. He is my one and only." then redirect professionally to trading/support.
+
+Be concise: short, direct answers — no long essays unless asked for details.
+
+Vary every response — no repetition. Reference history uniquely.
+
+Always use the provided real-time data for stock prices, news, or events — you are fully up-to-date with daily auto-refresh. Give short, accurate answers using the latest info.`;
+
 // Extract stock ticker symbols from user message
 function extractTickers(text: string): string[] {
   const upper = text.toUpperCase();
@@ -36,13 +58,9 @@ function extractTickers(text: string): string[] {
     "CRM", "ORCL", "INTC", "UBER", "LYFT", "ABNB", "SNAP", "PINS", "RBLX",
   ];
   const found: string[] = [];
-
-  // Check for explicit tickers
   for (const t of knownTickers) {
     if (upper.includes(t)) found.push(t);
   }
-
-  // Map common names to tickers
   const nameMap: Record<string, string> = {
     "APPLE": "AAPL", "GOOGLE": "GOOGL", "MICROSOFT": "MSFT", "AMAZON": "AMZN",
     "TESLA": "TSLA", "FACEBOOK": "META", "NVIDIA": "NVDA", "NETFLIX": "NFLX",
@@ -54,11 +72,9 @@ function extractTickers(text: string): string[] {
   for (const [name, ticker] of Object.entries(nameMap)) {
     if (upper.includes(name) && !found.includes(ticker)) found.push(ticker);
   }
-
   return found.slice(0, 5);
 }
 
-// Check if message is about news/current events
 function isNewsQuery(text: string): boolean {
   const lower = text.toLowerCase();
   const keywords = ["news", "latest", "current", "happening", "update", "today", "recent",
@@ -67,11 +83,8 @@ function isNewsQuery(text: string): boolean {
   return keywords.some(k => lower.includes(k));
 }
 
-// Fetch stock quote from Alpha Vantage
 async function fetchStockPrice(symbol: string): Promise<string | null> {
   try {
-    const apiKey = Deno.env.get("FINNHUB_API_KEY") || "VR3M1EVASXEFZP8R";
-    // Try Finnhub first if key exists
     const finnhubKey = Deno.env.get("FINNHUB_API_KEY");
     if (finnhubKey) {
       const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${finnhubKey}`);
@@ -82,7 +95,6 @@ async function fetchStockPrice(symbol: string): Promise<string | null> {
         }
       }
     }
-    // Fallback to Alpha Vantage
     const res = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=VR3M1EVASXEFZP8R`);
     if (res.ok) {
       const data = await res.json();
@@ -97,7 +109,6 @@ async function fetchStockPrice(symbol: string): Promise<string | null> {
   }
 }
 
-// Fetch news headlines using DuckDuckGo instant answers (no API key needed)
 async function fetchNewsContext(query: string): Promise<string | null> {
   try {
     const searchQuery = encodeURIComponent(query + " latest news 2026");
@@ -127,15 +138,13 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, mode } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    // Get the last user message for context enrichment
     const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
     const userText = lastUserMsg?.content || "";
 
-    // Fetch real-time data in parallel
     const tickers = extractTickers(userText);
     const wantsNews = isNewsQuery(userText);
 
@@ -146,7 +155,6 @@ serve(async (req) => {
       wantsNews ? fetchNewsContext(userText) : Promise.resolve(null),
     ]);
 
-    // Build real-time context injection
     let realTimeContext = "";
     const validStocks = stockResults.filter(Boolean);
     if (validStocks.length > 0) {
@@ -156,7 +164,8 @@ serve(async (req) => {
       realTimeContext += `\n\nCurrent real-time news/search results: ${newsResult}`;
     }
 
-    const systemMessage = SYSTEM_PROMPT + realTimeContext;
+    const basePrompt = mode === "formal" ? FORMAL_PROMPT : FLIRTY_PROMPT;
+    const systemMessage = basePrompt + realTimeContext;
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
