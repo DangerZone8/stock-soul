@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Send, Heart, Sparkles, Bot } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+
+type KaiaMode = "flirty" | "formal" | null;
 
 interface Message {
   id: string;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "system";
   content: string;
 }
 
@@ -23,6 +24,7 @@ export function DreamGirlChat() {
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [mode, setMode] = useState<KaiaMode>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -32,8 +34,25 @@ export function DreamGirlChat() {
     }
   }, [messages, isTyping]);
 
+  const handleModeChange = (newMode: KaiaMode) => {
+    if (newMode === mode) return;
+    const prevMode = mode;
+    setMode(newMode);
+    if (prevMode !== null) {
+      const label = newMode === "flirty" ? "Flirty 💋" : "Formal 📋";
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `mode-${Date.now()}`,
+          role: "system",
+          content: `Switching to ${label} mode…`,
+        },
+      ]);
+    }
+  };
+
   const handleSend = async () => {
-    if (!input.trim() || isTyping) return;
+    if (!input.trim() || isTyping || !mode) return;
 
     const userMsg: Message = {
       id: Date.now().toString(),
@@ -46,11 +65,10 @@ export function DreamGirlChat() {
     setInput("");
     setIsTyping(true);
 
-    // Build conversation for API (skip IDs)
-    const apiMessages = newMessages.map((m) => ({
-      role: m.role,
-      content: m.content,
-    }));
+    // Build conversation for API (skip system/mode messages and IDs)
+    const apiMessages = newMessages
+      .filter((m) => m.role !== "system")
+      .map((m) => ({ role: m.role, content: m.content }));
 
     let assistantContent = "";
 
@@ -63,7 +81,7 @@ export function DreamGirlChat() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ messages: apiMessages }),
+        body: JSON.stringify({ messages: apiMessages, mode }),
       });
 
       if (!resp.ok) {
@@ -124,12 +142,9 @@ export function DreamGirlChat() {
         }
       }
 
-      // Finalize the streaming message with a stable ID
       setMessages((prev) =>
         prev.map((m) =>
-          m.id === "streaming"
-            ? { ...m, id: Date.now().toString() }
-            : m
+          m.id === "streaming" ? { ...m, id: Date.now().toString() } : m
         )
       );
     } catch (e: any) {
@@ -139,7 +154,6 @@ export function DreamGirlChat() {
         description: e.message || "Could not reach AI. Try again.",
         variant: "destructive",
       });
-      // Remove the user message on error
       setMessages((prev) => prev.filter((m) => m.id !== userMsg.id));
     } finally {
       setIsTyping(false);
@@ -156,7 +170,7 @@ export function DreamGirlChat() {
           </div>
           <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-primary border-2 border-card" />
         </div>
-        <div>
+        <div className="flex-1">
           <div className="font-semibold text-sm">Kaia</div>
           <div className="text-[10px] text-primary font-mono flex items-center gap-1">
             <Sparkles className="w-2.5 h-2.5" />
@@ -165,26 +179,70 @@ export function DreamGirlChat() {
         </div>
       </div>
 
+      {/* Mode Toggle */}
+      <div className="px-4 pt-3 pb-1">
+        <div className="flex items-center gap-2 p-1 rounded-xl bg-muted/50 border border-border/30">
+          <button
+            onClick={() => handleModeChange("flirty")}
+            className={`flex-1 px-3 py-2 rounded-lg text-xs font-mono transition-all ${
+              mode === "flirty"
+                ? "bg-primary text-primary-foreground shadow-md"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Flirty 💋
+          </button>
+          <button
+            onClick={() => handleModeChange("formal")}
+            className={`flex-1 px-3 py-2 rounded-lg text-xs font-mono transition-all ${
+              mode === "formal"
+                ? "bg-primary text-primary-foreground shadow-md"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Formal 📋
+          </button>
+        </div>
+        {!mode && (
+          <p className="text-[10px] text-muted-foreground text-center mt-1.5 font-mono animate-pulse">
+            Select a mode to start chatting
+          </p>
+        )}
+      </div>
+
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((msg) => (
-          <motion.div
-            key={msg.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-          >
-            <div
-              className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
-                msg.role === "user"
-                  ? "bg-primary text-primary-foreground rounded-br-md"
-                  : "bg-secondary text-secondary-foreground rounded-bl-md"
-              }`}
+        {messages.map((msg) =>
+          msg.role === "system" ? (
+            <motion.div
+              key={msg.id}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center"
             >
-              {msg.content}
-            </div>
-          </motion.div>
-        ))}
+              <span className="text-[10px] font-mono text-muted-foreground bg-muted/50 px-3 py-1 rounded-full">
+                {msg.content}
+              </span>
+            </motion.div>
+          ) : (
+            <motion.div
+              key={msg.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+            >
+              <div
+                className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+                  msg.role === "user"
+                    ? "bg-primary text-primary-foreground rounded-br-md"
+                    : "bg-secondary text-secondary-foreground rounded-bl-md"
+                }`}
+              >
+                {msg.content}
+              </div>
+            </motion.div>
+          )
+        )}
 
         {isTyping && !messages.some((m) => m.id === "streaming") && (
           <motion.div
@@ -215,12 +273,13 @@ export function DreamGirlChat() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Talk to Kaia..."
-            className="flex-1 bg-muted/50 border border-border/50 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors"
+            placeholder={mode ? "Talk to Kaia..." : "Select a mode first..."}
+            disabled={!mode}
+            className="flex-1 bg-muted/50 border border-border/50 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           />
           <button
             type="submit"
-            disabled={!input.trim() || isTyping}
+            disabled={!input.trim() || isTyping || !mode}
             className="btn-terminal px-4 disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <Send className="w-4 h-4" strokeWidth={1.5} />
