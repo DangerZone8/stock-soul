@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Award, Clock, ChevronDown, ChevronUp, Zap } from "lucide-react";
+import { Award, Clock, ChevronDown, ChevronUp, Briefcase } from "lucide-react";
 
 const POSITIONS = [
   {
@@ -38,6 +38,24 @@ const POSITIONS = [
     duration: "Ongoing",
     description:
       "Designed and deployed a Python/TypeScript trading system with ML pattern recognition.",
+  },
+  {
+    id: "5",
+    gain: "Live",
+    title: "Elevana Internship",
+    tag: "Operations",
+    duration: "Ongoing",
+    description:
+      "Actively interning at Elevana, gaining hands-on experience in operations, project management, and team collaboration.",
+  },
+  {
+    id: "6",
+    gain: "Live",
+    title: "SH1P Growth Specialist",
+    tag: "Growth",
+    duration: "Ongoing",
+    description:
+      "Working as Growth Specialist at SH1P, focusing on scaling strategies, user acquisition, and business development.",
   },
 ];
 

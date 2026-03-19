@@ -1,61 +1,109 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, TrendingUp, Calendar, Award } from "lucide-react";
+import { X, Award, GraduationCap, Briefcase, Trophy, Users, Cpu, FlaskConical, Pen, Plane, Shield, Heart, Mic } from "lucide-react";
 
 const ACHIEVEMENTS = [
   {
     id: "1",
-    title: "Turned $10K → $147K",
-    metric: "+1,370%",
-    metricLabel: "Total Return",
-    period: "2022–2024",
-    teaser: "Started with savings, built a concentrated options portfolio during the AI boom.",
-    description: "Through careful analysis of the semiconductor supply chain and early identification of the AI infrastructure build-out, I positioned a concentrated portfolio in NVDA, AMD, and AVGO options. Managed risk through rolling strikes and maintaining strict position sizing rules. The portfolio peaked at $147K before taking profits.",
+    title: "Model United Nations",
+    icon: Users,
+    description: "Founded and led my own Model United Nations conference with support from family and friends. Built a strong team, hosted a successful event, and sharpened my communication, leadership, critical thinking, and quick decision-making skills while connecting with a wide range of people.",
   },
   {
     id: "2",
-    title: "NVDA Earnings Play",
-    metric: "+312%",
-    metricLabel: "Single Trade",
-    period: "May 2024",
-    teaser: "Called the earnings beat and rode weekly calls through the after-hours surge.",
-    description: "Identified unusual options flow 3 days before NVDA earnings. Bought weekly $880 calls at $8.20, sold at $34 after-hours when NVDA beat estimates by 18%. Total position return: 312% in 72 hours.",
+    title: "Chess Club",
+    icon: Trophy,
+    description: "Launched and led my school's Chess Club with help from family and friends. Assembled a dedicated team and organized a successful chess competition, boosting my communication, leadership, strategic thinking, and social skills.",
   },
   {
     id: "3",
-    title: "Built an AI Trading Bot",
-    metric: "73.2%",
-    metricLabel: "Win Rate",
-    period: "2023–Present",
-    teaser: "Full-stack algo trading system scanning 4,000+ tickers for momentum patterns.",
-    description: "Designed and deployed a Python/TypeScript trading system using technical indicators, sentiment analysis from financial news APIs, and machine learning pattern recognition. The bot scans pre-market movers and executes momentum trades with automated stop-losses. Backtested across 5 years of data.",
+    title: "Best Delegate (Model United Nations)",
+    icon: Award,
+    description: "Earned this national-level honor through intense preparation and flawless delegation. Perfected speeches, dominated rebuttals, and received strong support from family and friends.",
   },
   {
     id: "4",
-    title: "Zero to $1M Portfolio",
-    metric: "$1.04M",
-    metricLabel: "Net Liquidation",
-    period: "Jan 2025",
-    teaser: "Crossed the seven-figure milestone through compounding and disciplined risk management.",
-    description: "Milestone achieved through a combination of active trading (40%), long-term equity positions (35%), and crypto exposure (25%). Key principles: never risk more than 5% on any single trade, always have a thesis, and compound aggressively during high-conviction setups.",
+    title: "Hosted Yuvana 2025",
+    icon: Mic,
+    description: "Selected as CEO of hosting and scripting for Yuvana 2025 after auditions and polling. Mastered voice modulation and scripting from teachers, guided other hosts through challenges, and delivered a cohesive, successful event. Teamwork truly makes the dream work.",
   },
   {
     id: "5",
-    title: "Options Masterclass",
-    metric: "500+",
-    metricLabel: "Students Taught",
-    period: "2024",
-    teaser: "Launched a private community teaching retail traders professional-grade options strategies.",
-    description: "Created a 12-module course covering everything from basic Greeks to advanced spread strategies. Community grew organically through verified track record sharing. Average student portfolio improvement: +34% in first 6 months of applying the methodology.",
+    title: "Alyssum Global Services (Internship)",
+    icon: Briefcase,
+    description: "Improved the organization's website using Python (frontend) and Java (backend) for better user experience. Also contributed to building a brand-new, modern website (still in progress).",
   },
   {
     id: "6",
-    title: "Crypto Winter Survivor",
-    metric: "+89%",
-    metricLabel: "Recovery Return",
-    period: "2022–2023",
-    teaser: "Navigated the crash by shorting overleveraged protocols and accumulating BTC at lows.",
-    description: "When ETH/UST collapsed, I had already positioned short via put options on crypto-exposed stocks. Used profits to dollar-cost average into BTC between $16K-$20K. The combined strategy yielded 89% returns during what most traders considered a devastating period.",
+    title: "Nexergy (Volunteer/Internship)",
+    icon: Cpu,
+    description: "Assisted in semiconductor division for solar panel procurement and installation. Visited plants, learned integration processes, and explored solar deployment challenges in various climates with guidance from my uncle.",
+  },
+  {
+    id: "7",
+    title: "First Place in Forensic Files (Chemistry Event)",
+    icon: FlaskConical,
+    description: "Won school-level first place in a forensic chemistry competition. Solved cases involving adulterated juice (lead poisoning) and contaminated cottage cheese (starch detection) through brainstorming and lab tests.",
+  },
+  {
+    id: "8",
+    title: "Third Place in Engineering Graphics Event",
+    icon: Pen,
+    description: "Secured third place in a school-level engineering graphics contest. Analyzed local building blueprints, guessed structures, and constructed models from top/side/front views in timed rounds.",
+  },
+  {
+    id: "9",
+    title: "Certificate of Participation – Physics Drone Event",
+    icon: Plane,
+    description: "Built and competed with a drone in a school physics event. Excelled in speed and precision rounds but lost in demonstration after a wing-damaging crash.",
+  },
+  {
+    id: "10",
+    title: "Organising Committee – Tech Team (Flagship Event)",
+    icon: Cpu,
+    description: "Served on the organising committee for a major school tech event. Led a group that brainstormed and executed winning ideas, including Code Crusaders and Code Disco.",
+  },
+  {
+    id: "11",
+    title: "Certificate of Participation – Hack Hunt",
+    icon: Shield,
+    description: "Competed in a school-level ethical hacking challenge. Solved timed code-based puzzles to track a \"hacker\" through multiple rounds, reaching the semi-finals.",
+  },
+  {
+    id: "12",
+    title: "Hosted Republic Day 2023",
+    icon: Mic,
+    description: "Organized and hosted the school's Republic Day celebration. Handled theme selection, script writing, and sweets distribution logistics — delivered a successful event with teacher support.",
+  },
+  {
+    id: "13",
+    title: "Hosted Millets Assembly",
+    icon: Mic,
+    description: "Researched and presented on millets — types, sources, uses, benefits, and drawbacks — for a school assembly.",
+  },
+  {
+    id: "14",
+    title: "Seva Foundation (Volunteer)",
+    icon: Heart,
+    description: "Collaborated with locals and Seva Foundation to repair monsoon puddles. Taught math to underprivileged lower-grade students and led book/clothes collection drives for juniors.",
+  },
+  {
+    id: "15",
+    title: "Sadak Suraksha (Road Safety Volunteer)",
+    icon: Shield,
+    description: "Participated in school-led road safety program in underprivileged areas. Educated young bikers on rules and road signs to promote safer roads.",
+  },
+  {
+    id: "16",
+    title: "Certificate of Participation for Alchemist Quest (Chemistry Event)",
+    icon: FlaskConical,
+    description: "Competed in a school-level chemistry challenge with a team. Solved multiple rounds involving metal properties, indicators, and timed tests.",
+  },
+  {
+    id: "17",
+    title: "Certificate of Achievement in Homi Bhabha",
+    icon: GraduationCap,
+    description: "Qualified for national-level round in Homi Bhabha science exam after strong performance in school round.",
   },
 ];
 
@@ -74,14 +122,14 @@ export function AchievementsGrid() {
         <div className="flex items-center gap-2 mb-3">
           <Award className="w-4 h-4 text-primary" strokeWidth={1.5} />
           <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
-            Track Record
+            Milestones
           </span>
         </div>
         <h2 className="text-3xl sm:text-4xl font-semibold tracking-tighter">
           Career <span className="text-primary">Achievements</span>
         </h2>
         <p className="text-muted-foreground mt-2 max-w-lg">
-          Every trade is a lesson. Here are the milestones that shaped my journey.
+          Every experience is a lesson. Here are the milestones that shaped my journey.
         </p>
       </motion.div>
 
@@ -92,29 +140,25 @@ export function AchievementsGrid() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: i * 0.08 }}
+            transition={{ delay: i * 0.05 }}
             onClick={() => setSelected(ach.id)}
             className="glass-card-hover p-6 cursor-pointer group"
           >
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
-              <Calendar className="w-3 h-3" strokeWidth={1.5} />
-              <span className="font-mono">{ach.period}</span>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                <ach.icon className="w-4 h-4 text-primary" strokeWidth={1.5} />
+              </div>
+              <h3 className="text-sm font-semibold tracking-tight group-hover:text-primary transition-colors leading-tight">
+                {ach.title}
+              </h3>
             </div>
 
-            <h3 className="text-lg font-semibold tracking-tight mb-3 group-hover:text-primary transition-colors">
-              {ach.title}
-            </h3>
+            <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+              {ach.description}
+            </p>
 
-            <div className="flex items-baseline gap-2 mb-3">
-              <span className="font-mono text-2xl font-bold text-primary">{ach.metric}</span>
-              <span className="text-xs text-muted-foreground">{ach.metricLabel}</span>
-            </div>
-
-            <p className="text-sm text-muted-foreground leading-relaxed">{ach.teaser}</p>
-
-            <div className="mt-4 flex items-center gap-1 text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-              <TrendingUp className="w-3 h-3" strokeWidth={1.5} />
-              <span>Read more</span>
+            <div className="mt-3 text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+              Read more →
             </div>
           </motion.div>
         ))}
@@ -144,16 +188,11 @@ export function AchievementsGrid() {
                 <X className="w-4 h-4" strokeWidth={1.5} />
               </button>
 
-              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4 font-mono">
-                <Calendar className="w-3 h-3" strokeWidth={1.5} />
-                {selectedAch.period}
-              </div>
-
-              <h3 className="text-2xl font-semibold tracking-tight mb-2">{selectedAch.title}</h3>
-
-              <div className="flex items-baseline gap-2 mb-6">
-                <span className="font-mono text-3xl font-bold text-primary">{selectedAch.metric}</span>
-                <span className="text-sm text-muted-foreground">{selectedAch.metricLabel}</span>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                  <selectedAch.icon className="w-5 h-5 text-primary" strokeWidth={1.5} />
+                </div>
+                <h3 className="text-xl font-semibold tracking-tight">{selectedAch.title}</h3>
               </div>
 
               <p className="text-muted-foreground leading-relaxed">{selectedAch.description}</p>
