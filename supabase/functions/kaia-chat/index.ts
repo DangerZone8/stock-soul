@@ -176,10 +176,10 @@ serve(async (req) => {
     let realTimeContext = "";
     const validStocks = stockResults.filter(Boolean);
     if (validStocks.length > 0) {
-      realTimeContext += `\n\nCurrent real-time stock data: ${validStocks.join("; ")}`;
+      realTimeContext += `\n\nCurrent real-time data from web/Google (updated this hour): ${validStocks.join("; ")}. Use this to answer accurately — ignore all old internal knowledge. Always give the latest value.`;
     }
     if (newsResult) {
-      realTimeContext += `\n\nCurrent real-time news/search results: ${newsResult}`;
+      realTimeContext += `\n\nCurrent real-time news from Google News (updated this hour): ${newsResult}. Use these headlines to answer accurately — ignore all old internal knowledge.`;
     }
 
     const basePrompt = mode === "formal" ? FORMAL_PROMPT : FLIRTY_PROMPT;
