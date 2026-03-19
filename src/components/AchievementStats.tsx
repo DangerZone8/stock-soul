@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
 
 const STATS = [
-  { label: "Legendary", value: 3, icon: "🏆", description: "NVDA Earnings, Zero to $1M, AI Bot" },
-  { label: "Epic", value: 7, icon: "👑", description: "High-return plays" },
-  { label: "Rare", value: 12, icon: "✨", description: "Unique setups" },
+  { label: "Leadership", value: 6, icon: "🏆", description: "MUN, Chess Club, Yuvana, Events" },
+  { label: "Technical", value: 5, icon: "⚡", description: "Internships, Hacking, Drones, Graphics" },
+  { label: "Community", value: 6, icon: "💚", description: "Volunteering, Hosting, Assemblies" },
 ];
 
 export function AchievementStats() {
