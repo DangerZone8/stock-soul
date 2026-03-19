@@ -71,6 +71,27 @@ function isNewsQuery(text: string): boolean {
 
 async function fetchStockPrice(symbol: string): Promise<string | null> {
   try {
+    // Try Yahoo Finance v8 API (public, no key needed)
+    const res = await fetch(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`,
+      { headers: { "User-Agent": "Mozilla/5.0" } }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      const meta = data?.chart?.result?.[0]?.meta;
+      if (meta?.regularMarketPrice) {
+        const price = meta.regularMarketPrice;
+        const prevClose = meta.chartPreviousClose || meta.previousClose;
+        const change = prevClose ? ((price - prevClose) / prevClose * 100).toFixed(2) : "N/A";
+        const high = meta.regularMarketDayHigh || "N/A";
+        const low = meta.regularMarketDayLow || "N/A";
+        return `${symbol}: $${price.toFixed(2)} (change: ${change}%, high: $${typeof high === 'number' ? high.toFixed(2) : high}, low: $${typeof low === 'number' ? low.toFixed(2) : low})`;
+      }
+    }
+  } catch { /* fall through */ }
+
+  // Fallback: Finnhub
+  try {
     const finnhubKey = Deno.env.get("FINNHUB_API_KEY");
     if (finnhubKey) {
       const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${finnhubKey}`);
@@ -81,23 +102,35 @@ async function fetchStockPrice(symbol: string): Promise<string | null> {
         }
       }
     }
-    const res = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=VR3M1EVASXEFZP8R`);
-    if (res.ok) {
-      const data = await res.json();
-      const q = data["Global Quote"];
-      if (q && q["05. price"]) {
-        return `${symbol}: $${parseFloat(q["05. price"]).toFixed(2)} (change: ${q["10. change percent"]}, volume: ${q["06. volume"]})`;
-      }
-    }
-    return null;
-  } catch {
-    return null;
-  }
+  } catch { /* ignore */ }
+
+  return null;
 }
 
 async function fetchNewsContext(query: string): Promise<string | null> {
   try {
-    const searchQuery = encodeURIComponent(query + " latest news 2026");
+    // Google News RSS
+    const searchQuery = encodeURIComponent(query);
+    const res = await fetch(`https://news.google.com/rss/search?q=${searchQuery}&hl=en-US&gl=US&ceid=US:en`, {
+      headers: { "User-Agent": "Mozilla/5.0" },
+    });
+    if (res.ok) {
+      const xml = await res.text();
+      // Extract titles from RSS items
+      const titles: string[] = [];
+      const itemRegex = /<item>[\s\S]*?<title>([\s\S]*?)<\/title>/g;
+      let match;
+      while ((match = itemRegex.exec(xml)) !== null && titles.length < 5) {
+        const title = match[1].replace(/<!\[CDATA\[|\]\]>/g, "").trim();
+        if (title) titles.push(title);
+      }
+      if (titles.length > 0) return titles.join(" | ");
+    }
+  } catch { /* fall through */ }
+
+  // Fallback: DuckDuckGo
+  try {
+    const searchQuery = encodeURIComponent(query + " latest news");
     const res = await fetch(`https://api.duckduckgo.com/?q=${searchQuery}&format=json&no_html=1&skip_disambig=1`, {
       headers: { "User-Agent": "StockSoul/1.0" },
     });
@@ -112,10 +145,9 @@ async function fetchNewsContext(query: string): Promise<string | null> {
       }
       if (results.length > 0) return results.join(" | ");
     }
-    return null;
-  } catch {
-    return null;
-  }
+  } catch { /* ignore */ }
+
+  return null;
 }
 
 serve(async (req) => {
