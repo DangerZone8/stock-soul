@@ -7,6 +7,7 @@ import Index from "./pages/Index.tsx";
 import Achievements from "./pages/Achievements.tsx";
 import DreamGirl from "./pages/DreamGirl.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import ThemeToggle from "./components/ThemeToggle";
 
 const queryClient = new QueryClient();
   
