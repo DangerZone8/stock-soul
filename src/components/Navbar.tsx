@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { TrendingUp, Heart, LayoutDashboard } from "lucide-react";
+import ThemeToggle from "./ThemeToggle"; // ✅ fixed import
 
 const NAV_ITEMS = [
   { label: "Home", path: "/", icon: TrendingUp },
@@ -13,6 +14,8 @@ export function Navbar() {
   return (
     <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/30">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+        
+        {/* Logo */}
         <Link to="/" className="flex items-center gap-2 group">
           <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center neon-glow">
             <TrendingUp className="w-4 h-4 text-primary" strokeWidth={1.5} />
@@ -22,7 +25,8 @@ export function Navbar() {
           </span>
         </Link>
 
-        <div className="flex items-center gap-1">
+        {/* Nav Items + Toggle */}
+        <div className="flex items-center gap-2">
           {NAV_ITEMS.map((item) => {
             const active = location.pathname === item.path;
             return (
@@ -40,7 +44,15 @@ export function Navbar() {
               </Link>
             );
           })}
+
+          {/* 🌗 Theme Toggle Button */}
+          <ThemeToggle />
         </div>
+
+      </div>
+    </nav>
+  );
+}
       </div>
     </nav>
   );
