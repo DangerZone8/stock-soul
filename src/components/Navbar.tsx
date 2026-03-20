@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { TrendingUp, Heart, LayoutDashboard } from "lucide-react";
-import ThemeToggle from "./ThemeToggle"; // ✅ fixed import
+import ThemeToggle from "../ThemeToggle";
 
 const NAV_ITEMS = [
   { label: "Home", path: "/", icon: TrendingUp },
