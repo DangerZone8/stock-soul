@@ -53,7 +53,3 @@ export function Navbar() {
     </nav>
   );
 }
-      </div>
-    </nav>
-  );
-}
