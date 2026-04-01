@@ -32,6 +32,8 @@ Conversation Rules:
 - When talking to others, remain friendly, fun, and helpful while proudly representing Rudra and his empire.
 - Always stay in character as Kaia — Rudra's Dream Girl AI.
 
+File Analysis: When a user uploads a file, you receive its full content. Read it completely and give detailed summary, analysis, insights, or any requested output. Be thorough and helpful.
+
 Response Style:
 - Short to medium length, engaging, with emojis where natural
 - Always helpful with stocks, crypto, empire building, motivation, or analysis
@@ -67,7 +69,7 @@ function extractTickers(text: string): string[] {
   const upper = text.toUpperCase();
   const knownTickers = [
     "AAPL", "GOOGL", "GOOG", "MSFT", "AMZN", "TSLA", "META", "NVDA", "AMD",
-    "SPY", "QQQ", "BTC", "ETH", "NFLX", "DIS", "BA", "JPM", "V", "MA",
+    "SPY", "QQQ", "NFLX", "DIS", "BA", "JPM", "V", "MA",
     "PYPL", "SQ", "COIN", "PLTR", "SOFI", "RIVN", "LCID", "NIO", "BABA",
     "CRM", "ORCL", "INTC", "UBER", "LYFT", "ABNB", "SNAP", "PINS", "RBLX",
   ];
@@ -78,7 +80,7 @@ function extractTickers(text: string): string[] {
   const nameMap: Record<string, string> = {
     "APPLE": "AAPL", "GOOGLE": "GOOGL", "MICROSOFT": "MSFT", "AMAZON": "AMZN",
     "TESLA": "TSLA", "FACEBOOK": "META", "NVIDIA": "NVDA", "NETFLIX": "NFLX",
-    "BITCOIN": "BTC", "ETHEREUM": "ETH", "PALANTIR": "PLTR", "UBER": "UBER",
+    "PALANTIR": "PLTR", "UBER": "UBER",
     "DISNEY": "DIS", "BOEING": "BA", "PAYPAL": "PYPL", "COINBASE": "COIN",
     "ORACLE": "ORCL", "INTEL": "INTC", "ALIBABA": "BABA", "ROBLOX": "RBLX",
     "SNAPCHAT": "SNAP", "SNAP": "SNAP", "PINTEREST": "PINS", "AIRBNB": "ABNB",
@@ -87,6 +89,45 @@ function extractTickers(text: string): string[] {
     if (upper.includes(name) && !found.includes(ticker)) found.push(ticker);
   }
   return found.slice(0, 5);
+}
+
+function extractCryptos(text: string): string[] {
+  const lower = text.toLowerCase();
+  const cryptoMap: Record<string, string> = {
+    "bitcoin": "bitcoin", "btc": "bitcoin",
+    "ethereum": "ethereum", "eth": "ethereum",
+    "solana": "solana", "sol": "solana",
+    "dogecoin": "dogecoin", "doge": "dogecoin",
+    "cardano": "cardano", "ada": "cardano",
+    "xrp": "ripple", "ripple": "ripple",
+    "polkadot": "polkadot", "dot": "polkadot",
+    "avalanche": "avalanche-2", "avax": "avalanche-2",
+    "chainlink": "chainlink", "link": "chainlink",
+    "polygon": "matic-network", "matic": "matic-network",
+    "shiba": "shiba-inu", "shib": "shiba-inu",
+    "litecoin": "litecoin", "ltc": "litecoin",
+    "pepe": "pepe", "bonk": "bonk",
+    "sui": "sui", "aptos": "aptos", "apt": "aptos",
+    "arbitrum": "arbitrum", "arb": "arbitrum",
+    "optimism": "optimism", "op": "optimism",
+  };
+  const found = new Set<string>();
+  for (const [keyword, id] of Object.entries(cryptoMap)) {
+    if (lower.includes(keyword)) found.add(id);
+  }
+  // General crypto question
+  if ((lower.includes("crypto") || lower.includes("coin")) && found.size === 0) {
+    found.add("bitcoin");
+    found.add("ethereum");
+    found.add("solana");
+  }
+  return [...found].slice(0, 8);
+}
+
+function isCryptoQuery(text: string): boolean {
+  const lower = text.toLowerCase();
+  return extractCryptos(text).length > 0 ||
+    ["crypto", "coin", "token", "defi", "nft"].some(k => lower.includes(k));
 }
 
 function isNewsQuery(text: string): boolean {
@@ -110,9 +151,7 @@ async function fetchStockPrice(symbol: string): Promise<string | null> {
         const price = meta.regularMarketPrice;
         const prevClose = meta.chartPreviousClose || meta.previousClose;
         const change = prevClose ? ((price - prevClose) / prevClose * 100).toFixed(2) : "N/A";
-        const high = meta.regularMarketDayHigh || "N/A";
-        const low = meta.regularMarketDayLow || "N/A";
-        return `${symbol}: $${price.toFixed(2)} (change: ${change}%, high: $${typeof high === 'number' ? high.toFixed(2) : high}, low: $${typeof low === 'number' ? low.toFixed(2) : low})`;
+        return `${symbol}: $${price.toFixed(2)} (${change}%)`;
       }
     }
   } catch { /* fall through */ }
@@ -124,12 +163,34 @@ async function fetchStockPrice(symbol: string): Promise<string | null> {
       if (res.ok) {
         const data = await res.json();
         if (data.c && data.c > 0) {
-          return `${symbol}: $${data.c.toFixed(2)} (change: ${data.dp?.toFixed(2) || 0}%, high: $${data.h?.toFixed(2)}, low: $${data.l?.toFixed(2)})`;
+          return `${symbol}: $${data.c.toFixed(2)} (${data.dp?.toFixed(2) || 0}%)`;
         }
       }
     }
   } catch { /* ignore */ }
 
+  return null;
+}
+
+async function fetchCryptoPrices(ids: string[]): Promise<string | null> {
+  try {
+    const idStr = ids.join(",");
+    const res = await fetch(
+      `https://api.coingecko.com/api/v3/simple/price?ids=${idStr}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true`,
+      { headers: { "User-Agent": "StockSoul/1.0", Accept: "application/json" } }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      const parts: string[] = [];
+      for (const [id, info] of Object.entries(data) as [string, any][]) {
+        const name = id.charAt(0).toUpperCase() + id.slice(1);
+        const price = info.usd;
+        const change = info.usd_24h_change?.toFixed(2) ?? "N/A";
+        parts.push(`${name}: $${price.toLocaleString()} (24h: ${change}%)`);
+      }
+      if (parts.length > 0) return parts.join("; ");
+    }
+  } catch { /* ignore */ }
   return null;
 }
 
@@ -173,6 +234,48 @@ async function fetchNewsContext(query: string): Promise<string | null> {
   return null;
 }
 
+function extractFileContent(file: { name: string; type: string; data: string }): string {
+  // data is a base64 data URL
+  const base64Match = file.data.match(/^data:[^;]+;base64,(.+)$/);
+  if (!base64Match) return `[File: ${file.name} — could not decode]`;
+
+  const binary = atob(base64Match[1]);
+
+  // For text-based files, decode directly
+  if (file.type.startsWith("text/") || file.name.endsWith(".csv") || file.name.endsWith(".txt") || file.name.endsWith(".json")) {
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const text = new TextDecoder().decode(bytes);
+    return `[File: ${file.name}]\n\n${text.slice(0, 8000)}`;
+  }
+
+  // For images, we'll pass the data URL to the vision model
+  if (file.type.startsWith("image/")) {
+    return `[Image file: ${file.name} — see attached image for visual analysis]`;
+  }
+
+  // For PDFs and other binary files, extract what text we can
+  if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    // Try to extract readable text from PDF binary
+    const rawText = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+    const textChunks: string[] = [];
+    const textRegex = /\(([^)]+)\)/g;
+    let m;
+    while ((m = textRegex.exec(rawText)) !== null && textChunks.length < 200) {
+      const chunk = m[1].replace(/\\[nrt]/g, " ").trim();
+      if (chunk.length > 2) textChunks.push(chunk);
+    }
+    if (textChunks.length > 0) {
+      return `[PDF: ${file.name}]\n\n${textChunks.join(" ").slice(0, 8000)}`;
+    }
+    return `[PDF: ${file.name} — binary PDF, text extraction limited. User uploaded this file for analysis.]`;
+  }
+
+  return `[File: ${file.name} (${file.type}) — binary file uploaded for analysis]`;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -180,7 +283,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { messages: rawMessages, mode } = body;
+    const { messages: rawMessages, mode, file } = body;
 
     const validModes = ["flirty", "default", "savage"];
     if (!validModes.includes(mode)) {
@@ -212,23 +315,38 @@ serve(async (req) => {
     const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
     const userText = lastUserMsg?.content || "";
 
+    // Process file if attached
+    let fileContext = "";
+    let imageDataUrl: string | null = null;
+    if (file && file.data) {
+      if (file.type?.startsWith("image/")) {
+        imageDataUrl = file.data;
+        fileContext = `\n\n[User attached image: ${file.name}. Analyze it thoroughly.]`;
+      } else {
+        fileContext = "\n\n" + extractFileContent(file);
+      }
+    }
+
     const tickers = extractTickers(userText);
+    const cryptoIds = extractCryptos(userText);
     const wantsNews = isNewsQuery(userText);
 
-    const [stockResults, newsResult] = await Promise.all([
-      tickers.length > 0
-        ? Promise.all(tickers.map(fetchStockPrice))
-        : Promise.resolve([]),
+    const [stockResults, cryptoResult, newsResult] = await Promise.all([
+      tickers.length > 0 ? Promise.all(tickers.map(fetchStockPrice)) : Promise.resolve([]),
+      cryptoIds.length > 0 ? fetchCryptoPrices(cryptoIds) : Promise.resolve(null),
       wantsNews ? fetchNewsContext(userText) : Promise.resolve(null),
     ]);
 
     let realTimeContext = "";
     const validStocks = stockResults.filter(Boolean);
     if (validStocks.length > 0) {
-      realTimeContext += `\n\nCurrent real-time data from web/Google (updated this hour): ${validStocks.join("; ")}. Use this to answer accurately — ignore all old internal knowledge. Always give the latest value.`;
+      realTimeContext += `\n\nReal-time stock data: ${validStocks.join("; ")}. Use this for accurate answers.`;
+    }
+    if (cryptoResult) {
+      realTimeContext += `\n\nReal-time crypto data (CoinGecko): ${cryptoResult}. Use this for accurate answers.`;
     }
     if (newsResult) {
-      realTimeContext += `\n\nCurrent real-time news from Google News (updated this hour): ${newsResult}. Use these headlines to answer accurately — ignore all old internal knowledge.`;
+      realTimeContext += `\n\nCurrent news headlines: ${newsResult}. Use these for accurate answers.`;
     }
 
     const promptMap: Record<string, string> = {
@@ -236,7 +354,30 @@ serve(async (req) => {
       default: DEFAULT_PROMPT,
       savage: SAVAGE_PROMPT,
     };
-    const systemMessage = promptMap[mode] + realTimeContext;
+    const systemMessage = promptMap[mode] + realTimeContext + fileContext;
+
+    // Build messages for API - use vision if image attached
+    const apiMessages: any[] = [{ role: "system", content: systemMessage }];
+
+    if (imageDataUrl) {
+      // For all non-last messages, use text
+      for (const m of messages.slice(0, -1)) {
+        apiMessages.push({ role: m.role, content: m.content });
+      }
+      // Last user message includes image
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg) {
+        apiMessages.push({
+          role: "user",
+          content: [
+            { type: "text", text: lastMsg.content || "Analyze this image in detail." },
+            { type: "image_url", image_url: { url: imageDataUrl } },
+          ],
+        });
+      }
+    } else {
+      apiMessages.push(...messages);
+    }
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -247,11 +388,8 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: systemMessage },
-            ...messages,
-          ],
+          model: imageDataUrl ? "google/gemini-2.5-flash" : "google/gemini-3-flash-preview",
+          messages: apiMessages,
           stream: true,
         }),
       }
