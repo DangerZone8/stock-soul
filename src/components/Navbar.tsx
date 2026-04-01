@@ -43,9 +43,6 @@ export function Navbar() {
               </Link>
             );
           })}
-
-          {/* 🌗 Theme Toggle Button */}
-          <ThemeToggle />
         </div>
 
       </div>

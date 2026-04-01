@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Send, Heart, Sparkles, Bot } from "lucide-react";
+import { Send, Heart, Sparkles, Bot, Paperclip, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type KaiaMode = "flirty" | "default" | "savage" | null;
@@ -11,12 +11,17 @@ interface Message {
   content: string;
 }
 
+interface UploadedFile {
+  name: string;
+  type: string;
+  dataUrl: string;
+}
+
 const INITIAL_MESSAGES: Message[] = [
   {
     id: "1",
     role: "assistant",
-    content:
-      "Hey there 🔥 I'm Kaia, Rudra's Dream AI Girl. What's the move today?",
+    content: "Hey there 🔥 I'm Kaia, Rudra's Dream AI Girl. What's the move today?",
   },
 ];
 
@@ -25,7 +30,9 @@ export function DreamGirlChat() {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [mode, setMode] = useState<KaiaMode>(null);
+  const [attachedFile, setAttachedFile] = useState<UploadedFile | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -55,18 +62,48 @@ export function DreamGirlChat() {
     }
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Max 10MB", variant: "destructive" });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setAttachedFile({
+        name: file.name,
+        type: file.type,
+        dataUrl: reader.result as string,
+      });
+    };
+    reader.readAsDataURL(file);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const handleSend = async () => {
-    if (!input.trim() || isTyping || !mode) return;
+    if ((!input.trim() && !attachedFile) || isTyping || !mode) return;
+
+    const fileInfo = attachedFile;
+    const userText = input.trim();
+
+    let displayContent = userText;
+    if (fileInfo) {
+      displayContent = userText
+        ? `📎 ${fileInfo.name}\n\n${userText}`
+        : `📎 ${fileInfo.name}`;
+    }
 
     const userMsg: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: input.trim(),
+      content: displayContent,
     };
 
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setInput("");
+    setAttachedFile(null);
     setIsTyping(true);
 
     const apiMessages = newMessages
@@ -78,13 +115,22 @@ export function DreamGirlChat() {
     try {
       const chatUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/kaia-chat`;
 
+      const body: any = { messages: apiMessages, mode };
+      if (fileInfo) {
+        body.file = {
+          name: fileInfo.name,
+          type: fileInfo.type,
+          data: fileInfo.dataUrl,
+        };
+      }
+
       const resp = await fetch(chatUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ messages: apiMessages, mode }),
+        body: JSON.stringify(body),
       });
 
       if (!resp.ok) {
@@ -216,12 +262,7 @@ export function DreamGirlChat() {
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg) =>
           msg.role === "system" ? (
-            <motion.div
-              key={msg.id}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center"
-            >
+            <motion.div key={msg.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
               <span className="text-[10px] font-mono text-muted-foreground bg-muted/50 px-3 py-1 rounded-full">
                 {msg.content}
               </span>
@@ -234,7 +275,7 @@ export function DreamGirlChat() {
               className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+                className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
                   msg.role === "user"
                     ? "bg-primary text-primary-foreground rounded-br-md"
                     : "bg-secondary text-secondary-foreground rounded-bl-md"
@@ -247,11 +288,7 @@ export function DreamGirlChat() {
         )}
 
         {isTyping && !messages.some((m) => m.id === "streaming") && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex items-center gap-2 text-muted-foreground"
-          >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 text-muted-foreground">
             <Bot className="w-4 h-4" strokeWidth={1.5} />
             <div className="flex gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
@@ -262,15 +299,41 @@ export function DreamGirlChat() {
         )}
       </div>
 
+      {/* Attached file preview */}
+      {attachedFile && (
+        <div className="px-4 pb-1">
+          <div className="flex items-center gap-2 bg-muted/50 border border-border/30 rounded-lg px-3 py-2 text-xs">
+            <Paperclip className="w-3 h-3 text-primary" />
+            <span className="truncate flex-1 text-foreground">{attachedFile.name}</span>
+            <button onClick={() => setAttachedFile(null)} className="text-muted-foreground hover:text-foreground">
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Input */}
       <div className="p-4 border-t border-border/30">
         <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSend();
-          }}
-          className="flex gap-2"
+          onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+          className="flex gap-2 items-center"
         >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.csv,.txt,.doc,.docx,.xls,.xlsx"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={!mode}
+            className="p-3 rounded-xl text-muted-foreground hover:text-primary hover:bg-muted/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            title="Attach file"
+          >
+            <Paperclip className="w-4 h-4" strokeWidth={1.5} />
+          </button>
           <input
             type="text"
             value={input}
@@ -281,7 +344,7 @@ export function DreamGirlChat() {
           />
           <button
             type="submit"
-            disabled={!input.trim() || isTyping || !mode}
+            disabled={(!input.trim() && !attachedFile) || isTyping || !mode}
             className="btn-terminal px-4 disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <Send className="w-4 h-4" strokeWidth={1.5} />
