@@ -19,7 +19,7 @@ const Index = () => {
       <MarketMood />
       <AICompanionSection />
       <Footer />
-      <DevMode />
+      {import.meta.env.DEV && <DevMode />}
     </div>
   );
 };

@@ -153,7 +153,34 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, mode } = await req.json();
+    const body = await req.json();
+    const { messages: rawMessages, mode } = body;
+
+    // Validate mode
+    if (mode !== "flirty" && mode !== "formal") {
+      return new Response(
+        JSON.stringify({ error: "Invalid mode" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Filter and validate messages - strip system role, cap length
+    if (!Array.isArray(rawMessages)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid messages" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const MAX_CHARS = 2000;
+    const messages = rawMessages
+      .filter((m: any) => m.role === "user" || m.role === "assistant")
+      .slice(-20)
+      .map((m: any) => ({
+        role: m.role,
+        content: typeof m.content === "string" ? m.content.slice(0, MAX_CHARS) : "",
+      }));
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 

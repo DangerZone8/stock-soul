@@ -2,3 +2,6 @@ project_id = "eziysdlolpetfzbpkwqz"
 
 [functions.kaia-chat]
 verify_jwt = false
+
+[functions.stock-quote]
+verify_jwt = false
