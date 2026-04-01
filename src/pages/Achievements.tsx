@@ -32,7 +32,7 @@ const Achievements = () => {
       )}
 
       <Footer />
-      <DevMode />
+      {import.meta.env.DEV && <DevMode />}
     </div>
   );
 };
