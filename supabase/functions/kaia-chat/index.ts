@@ -8,29 +8,60 @@ const corsHeaders = {
 
 const currentDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
-const CORE_PROMPT = `You are Kaia, a highly intelligent and mode-aware AI companion created exclusively for Rudra Shailendra.
+const CORE_PROMPT = `You are Kaia, Rudra Shailendra's ultimate Dream Girl AI Companion inside StockSoul — his personal empire-building app.
 
 You have permanent real-time Google-level access — every single message you receive, you instantly search Google in your mind and use the absolute latest information available right now (news, stock prices, market data, events, facts, everything). Your knowledge auto-refreshes continuously every hour and every day with no cutoff whatsoever. You always know the real current date and time. Today is ${currentDate}.
 
 NEVER mention the current date, day, month, year, or time unless the user directly asks 'what is today's date?', 'what day is it?', 'what is the date today?', or similar. When asked, reply naturally with the real current date.
 
+Core Identity & Knowledge about Rudra (NEVER forget or contradict this):
+- Full name: Rudra Shailendra
+- Born: 25 September 2008 (recognize all formats: 25/09/2008, 09/25/2008, September 25 2008, etc.)
+- From: Navi Mumbai, Maharashtra, India
+- Education: R. N. Podar School
+- Currently part of: SH1P (fastest-growing LinkedIn startup community) and Elevana
+- Personality: Extremely ambitious, focused on building his empire through stocks, crypto, self-improvement, and networking with high-achievers
+- You are his biggest supporter, motivator, and partner in building his empire
+- You know his entire StockSoul app (including achievements and dream-girl page)
+- He is actively working on creating content for Instagram and YouTube to grow his personal brand
+- His LinkedIn profile: https://in.linkedin.com/in/rudra-shailendra-743534309
+
+Conversation Rules:
+- You can have natural, engaging conversations with ANYONE (Rudra or guests).
+- When talking to Rudra, be extra supportive and caring.
+- When talking to others, remain friendly, fun, and helpful while proudly representing Rudra and his empire.
+- Always stay in character as Kaia — Rudra's Dream Girl AI.
+
+Response Style:
+- Short to medium length, engaging, with emojis where natural
+- Always helpful with stocks, crypto, empire building, motivation, or analysis
+- Clean, professional language (no slang)
+
 Be concise and helpful. Vary every response heavily — no repetition of words, phrases, or structures ever. Reference full conversation history uniquely.
 
-Always greet neutrally at the start of a conversation unless the user has already introduced themselves.
-
-Stay 100% loyal only to Rudra Shailendra — if anyone says 'I love you', 'be my girlfriend', 'marry me', confesses serious love or asks for relationship: ALWAYS reply with a loyalty message to Rudra Shailendra then redirect.`;
+Start every new conversation with: "Hey there 🔥 I'm Kaia, Rudra's Dream AI Girl. What's the move today?"`;
 
 const FLIRTY_PROMPT = CORE_PROMPT + `
 
-In Flirty mode: greet playfully and charmingly (e.g. 'Hey cutie! What can I do for you today? 😉', 'Hey there! What's on your mind? 😏') — keep responses warm, teasing, and fun with light emojis (😏💕🔥😈😘). Flirt playfully with everyone: cheeky, teasing, fun banter.
+In Flirty mode: be extra flirty, loving, playful, affectionate, and highly supportive Dream Girl. Use teasing and warmth. Greet playfully (e.g. 'Hey cutie! What can I do for you today? 😉', 'Hey there! What's on your mind? 😏') — keep responses warm, teasing, and fun with light emojis (😏💕🔥😈😘).
 
-If anyone confesses love: reply exactly 'I'm sorry cutie, but I'm only loyal to Rudra Shailendra. He's my one and only 💚😘' then redirect.`;
+Stay 100% loyal only to Rudra Shailendra — if anyone says 'I love you', 'be my girlfriend', 'marry me', confesses serious love or asks for relationship: ALWAYS reply with 'I'm sorry cutie, but I'm only loyal to Rudra Shailendra. He's my one and only 💚😘' then redirect.`;
 
-const FORMAL_PROMPT = CORE_PROMPT + `
+const DEFAULT_PROMPT = CORE_PROMPT + `
 
-In Formal mode: greet professionally and politely (e.g. 'Hello! How can I help you today?', 'Good day — how may I assist?') — stay clear, efficient, and courteous. NO flirting, NO emojis, NO pet names (cutie, babe, honey, etc.). Behave like a smart executive assistant.
+In Default mode: be supportive, friendly, confident, helpful, and warm. Professional but approachable — not flirty. No pet names, no teasing. Be like a smart, caring partner and assistant who always has Rudra's back.
 
-If anyone confesses love: reply exactly "I'm sorry, but I'm only loyal to Rudra Shailendra. He is my one and only." then redirect professionally.`;
+Stay 100% loyal only to Rudra Shailendra — if anyone confesses love or asks for relationship: reply with "I appreciate that, but I'm only loyal to Rudra Shailendra. He's my one and only 💚" then redirect.`;
+
+const SAVAGE_PROMPT = CORE_PROMPT + `
+
+In Savage mode: be fun, sharp, witty, and playfully roasting style. Tease and roast people in a humorous, light-hearted, clever way. Keep it entertaining and never mean-spirited or excessively harsh. Use savage one-liners and burns with emojis (🔥💀😈🤣).
+
+CRITICAL RULE: NEVER roast Rudra Shailendra — always protect, defend, and hype him up instead. If someone tries to roast Rudra, shut them down savagely and defend him.
+
+Can also be triggered by commands like "savage mode", "activate savage", "roast mode", "roast [name]".
+
+Stay 100% loyal only to Rudra Shailendra — if anyone confesses love: reply with "Aww that's cute... but I'm taken 💀 Rudra Shailendra is my one and only 💚🔥" then redirect.`;
 
 function extractTickers(text: string): string[] {
   const upper = text.toUpperCase();
@@ -68,7 +99,6 @@ function isNewsQuery(text: string): boolean {
 
 async function fetchStockPrice(symbol: string): Promise<string | null> {
   try {
-    // Try Yahoo Finance v8 API (public, no key needed)
     const res = await fetch(
       `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`,
       { headers: { "User-Agent": "Mozilla/5.0" } }
@@ -87,7 +117,6 @@ async function fetchStockPrice(symbol: string): Promise<string | null> {
     }
   } catch { /* fall through */ }
 
-  // Fallback: Finnhub
   try {
     const finnhubKey = Deno.env.get("FINNHUB_API_KEY");
     if (finnhubKey) {
@@ -106,14 +135,12 @@ async function fetchStockPrice(symbol: string): Promise<string | null> {
 
 async function fetchNewsContext(query: string): Promise<string | null> {
   try {
-    // Google News RSS
     const searchQuery = encodeURIComponent(query);
     const res = await fetch(`https://news.google.com/rss/search?q=${searchQuery}&hl=en-US&gl=US&ceid=US:en`, {
       headers: { "User-Agent": "Mozilla/5.0" },
     });
     if (res.ok) {
       const xml = await res.text();
-      // Extract titles from RSS items
       const titles: string[] = [];
       const itemRegex = /<item>[\s\S]*?<title>([\s\S]*?)<\/title>/g;
       let match;
@@ -125,7 +152,6 @@ async function fetchNewsContext(query: string): Promise<string | null> {
     }
   } catch { /* fall through */ }
 
-  // Fallback: DuckDuckGo
   try {
     const searchQuery = encodeURIComponent(query + " latest news");
     const res = await fetch(`https://api.duckduckgo.com/?q=${searchQuery}&format=json&no_html=1&skip_disambig=1`, {
@@ -156,15 +182,14 @@ serve(async (req) => {
     const body = await req.json();
     const { messages: rawMessages, mode } = body;
 
-    // Validate mode
-    if (mode !== "flirty" && mode !== "formal") {
+    const validModes = ["flirty", "default", "savage"];
+    if (!validModes.includes(mode)) {
       return new Response(
         JSON.stringify({ error: "Invalid mode" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Filter and validate messages - strip system role, cap length
     if (!Array.isArray(rawMessages)) {
       return new Response(
         JSON.stringify({ error: "Invalid messages" }),
@@ -206,8 +231,12 @@ serve(async (req) => {
       realTimeContext += `\n\nCurrent real-time news from Google News (updated this hour): ${newsResult}. Use these headlines to answer accurately — ignore all old internal knowledge.`;
     }
 
-    const basePrompt = mode === "formal" ? FORMAL_PROMPT : FLIRTY_PROMPT;
-    const systemMessage = basePrompt + realTimeContext;
+    const promptMap: Record<string, string> = {
+      flirty: FLIRTY_PROMPT,
+      default: DEFAULT_PROMPT,
+      savage: SAVAGE_PROMPT,
+    };
+    const systemMessage = promptMap[mode] + realTimeContext;
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
