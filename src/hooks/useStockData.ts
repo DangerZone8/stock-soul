@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 
-const API_URL = 'https://www.alphavantage.co/query?function=GLOBAL_QUOTE';
-const API_KEY = 'VR3M1EVASXEFZP8R';
+const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 
 const useStockData = (symbol: string) => {
   const [data, setData] = useState<any>(null);
@@ -12,7 +11,9 @@ const useStockData = (symbol: string) => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`${API_URL}&symbol=${symbol}&apikey=${API_KEY}`);
+        const res = await fetch(
+          `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/stock-quote?symbol=${encodeURIComponent(symbol)}`
+        );
         const json = await res.json();
         const quote = json['Global Quote'];
         if (quote && quote['05. price']) {
