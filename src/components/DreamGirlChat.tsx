@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Send, Heart, Sparkles, Bot } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-type KaiaMode = "flirty" | "formal" | null;
+type KaiaMode = "flirty" | "default" | "savage" | null;
 
 interface Message {
   id: string;
@@ -16,7 +16,7 @@ const INITIAL_MESSAGES: Message[] = [
     id: "1",
     role: "assistant",
     content:
-      "Hey babe 💚 Markets just opened and I'm already bullish on us today. NVDA is ripping — just like my heart when you text me. How's your portfolio looking? 📈",
+      "Hey there 🔥 I'm Kaia, Rudra's Dream AI Girl. What's the move today?",
   },
 ];
 
@@ -39,13 +39,17 @@ export function DreamGirlChat() {
     const prevMode = mode;
     setMode(newMode);
     if (prevMode !== null) {
-      const label = newMode === "flirty" ? "Flirty 💋" : "Formal 📋";
+      const labels: Record<string, string> = {
+        flirty: "Flirty 💋",
+        default: "Default 🤝",
+        savage: "Savage 🔥",
+      };
       setMessages((prev) => [
         ...prev,
         {
           id: `mode-${Date.now()}`,
           role: "system",
-          content: `Switching to ${label} mode…`,
+          content: `Switching to ${labels[newMode!]} mode…`,
         },
       ]);
     }
@@ -65,7 +69,6 @@ export function DreamGirlChat() {
     setInput("");
     setIsTyping(true);
 
-    // Build conversation for API (skip system/mode messages and IDs)
     const apiMessages = newMessages
       .filter((m) => m.role !== "system")
       .map((m) => ({ role: m.role, content: m.content }));
@@ -160,6 +163,12 @@ export function DreamGirlChat() {
     }
   };
 
+  const modes: { key: KaiaMode; label: string }[] = [
+    { key: "flirty", label: "Flirty 💋" },
+    { key: "default", label: "Default 🤝" },
+    { key: "savage", label: "Savage 🔥" },
+  ];
+
   return (
     <div className="glass-card flex flex-col h-[600px] max-w-2xl w-full">
       {/* Header */}
@@ -181,27 +190,20 @@ export function DreamGirlChat() {
 
       {/* Mode Toggle */}
       <div className="px-4 pt-3 pb-1">
-        <div className="flex items-center gap-2 p-1 rounded-xl bg-muted/50 border border-border/30">
-          <button
-            onClick={() => handleModeChange("flirty")}
-            className={`flex-1 px-3 py-2 rounded-lg text-xs font-mono transition-all ${
-              mode === "flirty"
-                ? "bg-primary text-primary-foreground shadow-md"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Flirty 💋
-          </button>
-          <button
-            onClick={() => handleModeChange("formal")}
-            className={`flex-1 px-3 py-2 rounded-lg text-xs font-mono transition-all ${
-              mode === "formal"
-                ? "bg-primary text-primary-foreground shadow-md"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Formal 📋
-          </button>
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/50 border border-border/30">
+          {modes.map((m) => (
+            <button
+              key={m.key}
+              onClick={() => handleModeChange(m.key)}
+              className={`flex-1 px-2 py-2 rounded-lg text-xs font-mono transition-all ${
+                mode === m.key
+                  ? "bg-primary text-primary-foreground shadow-md"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {m.label}
+            </button>
+          ))}
         </div>
         {!mode && (
           <p className="text-[10px] text-muted-foreground text-center mt-1.5 font-mono animate-pulse">
