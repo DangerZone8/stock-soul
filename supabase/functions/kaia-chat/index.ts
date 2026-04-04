@@ -102,6 +102,18 @@ function extractTickers(text: string): string[] {
     "DISNEY": "DIS", "BOEING": "BA", "PAYPAL": "PYPL", "COINBASE": "COIN",
     "ORACLE": "ORCL", "INTEL": "INTC", "ALIBABA": "BABA", "ROBLOX": "RBLX",
     "SNAPCHAT": "SNAP", "SNAP": "SNAP", "PINTEREST": "PINS", "AIRBNB": "ABNB",
+    // Indian stocks
+    "RELIANCE": "RELIANCE.NS", "TCS": "TCS.NS", "INFOSYS": "INFY.NS", "INFY": "INFY.NS",
+    "HDFC": "HDFCBANK.NS", "HDFCBANK": "HDFCBANK.NS", "ICICI": "ICICIBANK.NS",
+    "WIPRO": "WIPRO.NS", "TATAMOTORS": "TATAMOTORS.NS", "TATA MOTORS": "TATAMOTORS.NS",
+    "ADANI": "ADANIENT.NS", "BAJAJ": "BAJFINANCE.NS", "SBIN": "SBIN.NS", "SBI": "SBIN.NS",
+    "ITC": "ITC.NS", "MARUTI": "MARUTI.NS", "SUNPHARMA": "SUNPHARMA.NS",
+    "TATASTEEL": "TATASTEEL.NS", "TATA STEEL": "TATASTEEL.NS",
+    "BHARTIARTL": "BHARTIARTL.NS", "AIRTEL": "BHARTIARTL.NS",
+    "KOTAKBANK": "KOTAKBANK.NS", "KOTAK": "KOTAKBANK.NS",
+    "LT": "LT.NS", "LARSEN": "LT.NS",
+    "HCLTECH": "HCLTECH.NS", "HCL": "HCLTECH.NS",
+    "AXISBANK": "AXISBANK.NS", "AXIS": "AXISBANK.NS",
   };
   for (const [name, ticker] of Object.entries(nameMap)) {
     if (upper.includes(name) && !found.includes(ticker)) found.push(ticker);
