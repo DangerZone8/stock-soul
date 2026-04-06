@@ -19,7 +19,15 @@
   <meta name="twitter:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2b50a486-1079-4ab6-84b8-bb5f2b91f6c1/id-preview-9a234e5e--f3476736-85a6-40da-8aff-8eb73c3b3182.lovable.app-1773463234810.png">
   <meta name="twitter:card" content="summary_large_image">
 </head>
-  <body class="dark">
+  <body>
+    <script>
+      (function(){
+        var t=localStorage.getItem('theme');
+        if(t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme:dark)').matches)){
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
