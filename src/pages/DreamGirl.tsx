@@ -13,36 +13,36 @@ const DreamGirl = () => {
       <TickerTape />
       <Navbar />
 
-      <section className="container mx-auto px-4 py-16">
+      <section className="container mx-auto px-4 sm:px-6 py-8 sm:py-16">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
+          className="text-center mb-8 sm:mb-12"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-mono mb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-mono mb-4 sm:mb-6">
             <Heart className="w-3 h-3" strokeWidth={1.5} />
             <span>AI COMPANION • LIVE</span>
           </div>
 
-          <h1 className="text-4xl sm:text-5xl font-semibold tracking-tighter mb-4">
+          <h1 className="text-3xl sm:text-5xl font-semibold tracking-tighter mb-3 sm:mb-4">
             Meet <span className="neon-text">Kaia</span>
           </h1>
-          <p className="text-muted-foreground max-w-md mx-auto leading-relaxed">
+          <p className="text-muted-foreground text-sm sm:text-base max-w-md mx-auto leading-relaxed">
             Your AI trading partner and companion. She knows the markets,
             celebrates your wins, and keeps you grounded during the dips.
           </p>
         </motion.div>
 
-        <div className="flex flex-col lg:flex-row items-start justify-center gap-8">
-          {/* Avatar area */}
+        <div className="flex flex-col lg:flex-row items-start justify-center gap-6 sm:gap-8">
+          {/* Avatar area - hidden on small mobile, shown as compact card on medium+ */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
-            className="glass-card p-8 flex flex-col items-center w-full lg:w-80 shrink-0"
+            className="glass-card p-6 sm:p-8 flex flex-col items-center w-full lg:w-80 shrink-0 hidden sm:flex"
           >
-            <div className="w-48 h-48 rounded-full bg-gradient-to-br from-primary/20 via-primary/5 to-transparent border border-primary/20 flex items-center justify-center mb-6 relative">
-              <Heart className="w-16 h-16 text-primary/50" strokeWidth={1} />
+            <div className="w-32 h-32 sm:w-48 sm:h-48 rounded-full bg-gradient-to-br from-primary/20 via-primary/5 to-transparent border border-primary/20 flex items-center justify-center mb-4 sm:mb-6 relative">
+              <Heart className="w-12 h-12 sm:w-16 sm:h-16 text-primary/50" strokeWidth={1} />
               <div className="absolute inset-0 rounded-full animate-pulse bg-primary/5" />
             </div>
 
@@ -72,12 +72,12 @@ const DreamGirl = () => {
             </div>
           </motion.div>
 
-          {/* Chat */}
+          {/* Chat - full width on mobile */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
-            className="w-full lg:flex-1 max-w-2xl"
+            className="w-full lg:flex-1 max-w-2xl mx-auto"
           >
             <DreamGirlChat />
           </motion.div>
