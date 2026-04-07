@@ -381,9 +381,16 @@ serve(async (req) => {
       }
     }
 
-    const tickers = extractTickers(userText);
-    const cryptoIds = extractCryptos(userText);
+    let tickers = extractTickers(userText);
+    let cryptoIds = extractCryptos(userText);
     const wantsNews = isNewsQuery(userText);
+    const isWatchlist = isGeneralWatchlistQuery(userText);
+
+    // For general watchlist queries with no specific tickers, fetch defaults
+    if (isWatchlist && tickers.length === 0 && cryptoIds.length === 0) {
+      tickers = ["NVDA", "AAPL", "TSLA"];
+      cryptoIds = ["bitcoin", "ethereum"];
+    }
 
     const [stockResults, cryptoResult, newsResult] = await Promise.all([
       tickers.length > 0 ? Promise.all(tickers.map(fetchStockPrice)) : Promise.resolve([]),
