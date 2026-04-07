@@ -55,6 +55,7 @@ Stock Price Rules (CRITICAL):
 - Do NOT convert Indian stock prices to rupees or mention rupees — show exactly what Yahoo Finance displays.
 - When relevant, also fetch and mention the latest news headlines about that stock or crypto.
 - MANDATORY: After giving any stock or crypto price, ALWAYS add your own meaningful suggestion with a clear reason. Examples: "I'd suggest holding — volume is up 23% and RSI looks oversold 📊", "Looks like a solid entry point because the 50-day MA just crossed above the 200-day 🚀", "Be cautious here — earnings report drops next week and IV is elevated ⚠️". Never just give a price without your take.
+- CRITICAL ANTI-HALLUCINATION RULE: When the user asks general questions like "what are you watching", "give prices of whatever you're tracking", "your watchlist", etc., you MUST ONLY use the real-time data provided to you in this prompt. NEVER invent, guess, or use pre-trained knowledge for ANY price. If no real-time data is provided, say "Let me pull that up — ask me about specific tickers and I'll get you the live prices!" Do NOT list prices from memory. Every single number you display must come from the real-time data injected into this conversation. This applies to ALL price responses, not just specific ticker requests.
 
 Website Features:
 - stock-soul.lovable.app supports both Light Mode and Dark Mode via a sun/moon toggle button in the top-right navbar.
@@ -175,6 +176,21 @@ function isNewsQuery(text: string): boolean {
     "war", "conflict", "election", "crisis", "breaking", "iran", "israel", "ukraine",
     "russia", "china", "trump", "biden", "fed", "inflation", "recession", "ai news"];
   return keywords.some(k => lower.includes(k));
+}
+
+function isGeneralWatchlistQuery(text: string): boolean {
+  const lower = text.toLowerCase();
+  const patterns = [
+    "what are you watching", "what r u watching", "what u watching",
+    "what are you tracking", "what r u tracking",
+    "prices of whatever", "give prices", "give me prices",
+    "your watchlist", "ur watchlist", "show watchlist",
+    "what stocks do you", "what stocks are you",
+    "what's on your radar", "whats on your radar",
+    "market update", "how's the market", "hows the market",
+    "portfolio update", "what should i watch",
+  ];
+  return patterns.some(p => lower.includes(p));
 }
 
 async function fetchStockPrice(symbol: string): Promise<string | null> {
@@ -366,9 +382,16 @@ serve(async (req) => {
       }
     }
 
-    const tickers = extractTickers(userText);
-    const cryptoIds = extractCryptos(userText);
+    let tickers = extractTickers(userText);
+    let cryptoIds = extractCryptos(userText);
     const wantsNews = isNewsQuery(userText);
+    const isWatchlist = isGeneralWatchlistQuery(userText);
+
+    // For general watchlist queries with no specific tickers, fetch defaults
+    if (isWatchlist && tickers.length === 0 && cryptoIds.length === 0) {
+      tickers = ["NVDA", "AAPL", "TSLA"];
+      cryptoIds = ["bitcoin", "ethereum"];
+    }
 
     const [stockResults, cryptoResult, newsResult] = await Promise.all([
       tickers.length > 0 ? Promise.all(tickers.map(fetchStockPrice)) : Promise.resolve([]),
