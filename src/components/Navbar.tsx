@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { TrendingUp, Heart, LayoutDashboard } from "lucide-react";
+import { TrendingUp, Heart, LayoutDashboard, Menu, X } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 
 const NAV_ITEMS = [
@@ -10,11 +11,11 @@ const NAV_ITEMS = [
 
 export function Navbar() {
   const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/30">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 group">
           <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center neon-glow">
@@ -25,8 +26,8 @@ export function Navbar() {
           </span>
         </Link>
 
-        {/* Nav Items + Toggle */}
-        <div className="flex items-center gap-2">
+        {/* Desktop Nav */}
+        <div className="hidden md:flex items-center gap-2">
           {NAV_ITEMS.map((item) => {
             const active = location.pathname === item.path;
             return (
@@ -40,14 +41,51 @@ export function Navbar() {
                 }`}
               >
                 <item.icon className="w-4 h-4" strokeWidth={1.5} />
-                <span className="hidden sm:inline">{item.label}</span>
+                <span>{item.label}</span>
               </Link>
             );
           })}
           <ThemeToggle />
         </div>
 
+        {/* Mobile: theme toggle + hamburger */}
+        <div className="flex md:hidden items-center gap-2">
+          <ThemeToggle />
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="p-2.5 rounded-lg text-foreground hover:bg-secondary/50 transition-colors"
+            aria-label="Toggle menu"
+          >
+            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
       </div>
+
+      {/* Mobile dropdown */}
+      {mobileOpen && (
+        <div className="md:hidden border-t border-border/30 bg-background/95 backdrop-blur-xl">
+          <div className="container mx-auto px-4 py-3 space-y-1">
+            {NAV_ITEMS.map((item) => {
+              const active = location.pathname === item.path;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setMobileOpen(false)}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                    active
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                  }`}
+                >
+                  <item.icon className="w-5 h-5" strokeWidth={1.5} />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

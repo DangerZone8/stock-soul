@@ -13,8 +13,8 @@ const METRICS = [
 
 export function HeroSection() {
   return (
-    <section className="relative min-h-[85vh] flex items-center">
-      <div className="container mx-auto px-4 py-20 relative z-10">
+    <section className="relative min-h-[70vh] sm:min-h-[85vh] flex items-center">
+      <div className="container mx-auto px-4 sm:px-6 py-12 sm:py-20 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -26,56 +26,56 @@ export function HeroSection() {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-mono mb-8"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-mono mb-6 sm:mb-8"
           >
             <Activity className="w-3 h-3" strokeWidth={1.5} />
             <span>LIVE • Markets Open</span>
           </motion.div>
 
           {/* Headline */}
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-semibold tracking-tighter leading-[0.95] mb-6">
+          <h1 className="text-3xl sm:text-5xl lg:text-7xl font-semibold tracking-tighter leading-[0.95] mb-4 sm:mb-6">
             My Stock Empire
             <br />
             <span className="neon-text">Powered by Passion</span>
             <br />
-            <span className="text-muted-foreground text-3xl sm:text-4xl lg:text-5xl font-normal">
+            <span className="text-muted-foreground text-xl sm:text-3xl lg:text-5xl font-normal">
               & Kaia
             </span>
           </h1>
 
-          <p className="text-muted-foreground text-lg max-w-xl leading-relaxed mb-10">
+          <p className="text-muted-foreground text-base sm:text-lg max-w-xl leading-relaxed mb-8 sm:mb-10">
             Quantitative trader. Full-stack builder. Every chart tells a story—
             and Kaia helps me write the ending.
           </p>
 
           {/* CTAs */}
-          <div className="flex flex-wrap gap-4 mb-16">
-            <a href="/achievements" className="btn-terminal">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-12 sm:mb-16">
+            <a href="/achievements" className="btn-terminal text-center">
               <TrendingUp className="w-4 h-4" strokeWidth={1.5} />
               View Track Record
             </a>
-            <a href="/dream-girl" className="btn-ghost-terminal">
+            <a href="/dream-girl" className="btn-ghost-terminal text-center">
               Meet Kaia
               <ChevronRight className="w-4 h-4" strokeWidth={1.5} />
             </a>
           </div>
 
           {/* Metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
             {METRICS.map((m, i) => (
               <motion.div
                 key={m.label}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 + i * 0.08 }}
-                className="glass-card p-5"
+                className="glass-card p-4 sm:p-5"
               >
                 <div className="flex items-center gap-2 mb-2">
                   <m.icon className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={1.5} />
-                  <div className="text-xs text-muted-foreground font-medium">{m.label}</div>
+                  <div className="text-[10px] sm:text-xs text-muted-foreground font-medium">{m.label}</div>
                 </div>
-                <div className="font-mono text-2xl font-bold text-primary mb-0.5">{m.value}</div>
-                <div className="text-xs text-muted-foreground">{m.sub}</div>
+                <div className="font-mono text-lg sm:text-2xl font-bold text-primary mb-0.5">{m.value}</div>
+                <div className="text-[10px] sm:text-xs text-muted-foreground">{m.sub}</div>
               </motion.div>
             ))}
           </div>
