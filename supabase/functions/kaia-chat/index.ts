@@ -189,6 +189,10 @@ function isGeneralWatchlistQuery(text: string): boolean {
     "what's on your radar", "whats on your radar",
     "market update", "how's the market", "hows the market",
     "portfolio update", "what should i watch",
+    "what u r watchin", "what are u watching", "u r watching",
+    "u r tracking", "u r watchin", "what r u watchin",
+    "what you watching", "what you tracking",
+    "show me what you", "what do you track",
   ];
   return patterns.some(p => lower.includes(p));
 }
