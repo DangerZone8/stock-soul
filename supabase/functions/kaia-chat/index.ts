@@ -177,6 +177,21 @@ function isNewsQuery(text: string): boolean {
   return keywords.some(k => lower.includes(k));
 }
 
+function isGeneralWatchlistQuery(text: string): boolean {
+  const lower = text.toLowerCase();
+  const patterns = [
+    "what are you watching", "what r u watching", "what u watching",
+    "what are you tracking", "what r u tracking",
+    "prices of whatever", "give prices", "give me prices",
+    "your watchlist", "ur watchlist", "show watchlist",
+    "what stocks do you", "what stocks are you",
+    "what's on your radar", "whats on your radar",
+    "market update", "how's the market", "hows the market",
+    "portfolio update", "what should i watch",
+  ];
+  return patterns.some(p => lower.includes(p));
+}
+
 async function fetchStockPrice(symbol: string): Promise<string | null> {
   try {
     const res = await fetch(
