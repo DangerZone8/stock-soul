@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { TrendingUp, Heart, LayoutDashboard, BarChart3, Menu, X } from "lucide-react";
+import { TrendingUp, Heart, LayoutDashboard, Menu, X } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 
 const NAV_ITEMS = [
   { label: "Home", path: "/", icon: TrendingUp },
-  { label: "Track Record", path: "/track-record", icon: BarChart3 },
   { label: "Kaia", path: "/dream-girl", icon: Heart },
   { label: "Achievements", path: "/achievements", icon: LayoutDashboard },
 ];
@@ -17,7 +16,6 @@ export function Navbar() {
   return (
     <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/30">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        {/* Logo */}
         <Link to="/" className="flex items-center gap-2 group">
           <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center neon-glow">
             <TrendingUp className="w-4 h-4 text-primary" strokeWidth={1.5} />
@@ -27,7 +25,6 @@ export function Navbar() {
           </span>
         </Link>
 
-        {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-2">
           {NAV_ITEMS.map((item) => {
             const active = location.pathname === item.path;
@@ -49,7 +46,6 @@ export function Navbar() {
           <ThemeToggle />
         </div>
 
-        {/* Mobile: theme toggle + hamburger */}
         <div className="flex md:hidden items-center gap-2">
           <ThemeToggle />
           <button
@@ -62,7 +58,6 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Mobile dropdown */}
       {mobileOpen && (
         <div className="md:hidden border-t border-border/30 bg-background/95 backdrop-blur-xl">
           <div className="container mx-auto px-4 py-3 space-y-1">
