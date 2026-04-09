@@ -4,7 +4,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index.tsx";
 import Achievements from "./pages/Achievements.tsx";
-import TrackRecordPage from "./pages/TrackRecordPage.tsx";
 import DreamGirl from "./pages/DreamGirl.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -17,7 +16,6 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/track-record" element={<TrackRecordPage />} />
           <Route path="/achievements" element={<Achievements />} />
           <Route path="/dream-girl" element={<DreamGirl />} />
           <Route path="*" element={<NotFound />} />

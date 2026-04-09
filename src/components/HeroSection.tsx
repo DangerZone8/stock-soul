@@ -50,7 +50,7 @@ export function HeroSection() {
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-12 sm:mb-16">
-            <a href="/track-record" className="btn-terminal text-center">
+            <a href="#highlights" className="btn-terminal text-center">
               <TrendingUp className="w-4 h-4" strokeWidth={1.5} />
               View Track Record
             </a>
