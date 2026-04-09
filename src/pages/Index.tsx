@@ -4,6 +4,7 @@ import { HeroSection } from "@/components/HeroSection";
 import { TrackRecord } from "@/components/TrackRecord";
 import { MarketMood } from "@/components/MarketMood";
 import { AICompanionSection } from "@/components/AICompanionSection";
+import { QuickGuide } from "@/components/QuickGuide";
 import { CandlestickBackground } from "@/components/CandlestickBackground";
 import { Footer } from "@/components/Footer";
 import { DevMode } from "@/components/DevMode";
@@ -15,9 +16,10 @@ const Index = () => {
       <TickerTape />
       <Navbar />
       <HeroSection />
+      <QuickGuide />
+      <AICompanionSection />
       <TrackRecord />
       <MarketMood />
-      <AICompanionSection />
       <Footer />
       {import.meta.env.DEV && <DevMode />}
     </div>
