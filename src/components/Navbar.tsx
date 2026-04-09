@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { TrendingUp, Heart, LayoutDashboard, HelpCircle, Menu, X } from "lucide-react";
+import { TrendingUp, Heart, LayoutDashboard, BarChart3, Menu, X } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 
 const NAV_ITEMS = [
   { label: "Home", path: "/", icon: TrendingUp },
+  { label: "Track Record", path: "/track-record", icon: BarChart3 },
   { label: "Kaia", path: "/dream-girl", icon: Heart },
   { label: "Achievements", path: "/achievements", icon: LayoutDashboard },
 ];
