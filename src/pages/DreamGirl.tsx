@@ -1,10 +1,11 @@
 import { motion } from "framer-motion";
-import { Heart, Sparkles } from "lucide-react";
+import { Heart, Sparkles, HelpCircle } from "lucide-react";
 import { TickerTape } from "@/components/TickerTape";
 import { Navbar } from "@/components/Navbar";
 import { DreamGirlChat } from "@/components/DreamGirlChat";
 import { CandlestickBackground } from "@/components/CandlestickBackground";
 import { Footer } from "@/components/Footer";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const DreamGirl = () => {
   return (
@@ -24,8 +25,20 @@ const DreamGirl = () => {
             <span>AI COMPANION • LIVE</span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-semibold tracking-tighter mb-3 sm:mb-4">
+          <h1 className="text-3xl sm:text-5xl font-semibold tracking-tighter mb-3 sm:mb-4 flex items-center justify-center gap-3">
             Meet <span className="neon-text">Kaia</span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex cursor-help">
+                    <HelpCircle className="w-5 h-5 text-muted-foreground hover:text-primary transition-colors" strokeWidth={1.5} />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs text-xs">
+                  <p>Pick a mode (Flirty, Default, or Savage), then type anything — stock prices, crypto trends, or just chat!</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </h1>
           <p className="text-muted-foreground text-sm sm:text-base max-w-md mx-auto leading-relaxed">
             Your AI trading partner and companion. She knows the markets,
