@@ -1,10 +1,11 @@
 import { motion } from "framer-motion";
-import { Heart, Sparkles } from "lucide-react";
+import { Heart, Sparkles, HelpCircle } from "lucide-react";
 import { TickerTape } from "@/components/TickerTape";
 import { Navbar } from "@/components/Navbar";
 import { DreamGirlChat } from "@/components/DreamGirlChat";
 import { CandlestickBackground } from "@/components/CandlestickBackground";
 import { Footer } from "@/components/Footer";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const DreamGirl = () => {
   return (
