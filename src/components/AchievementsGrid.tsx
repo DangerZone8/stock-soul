@@ -146,12 +146,13 @@ export function AchievementsGrid() {
         {ACHIEVEMENTS.map((ach, i) => (
           <motion.div
             key={ach.id}
+            id={(ach as any).anchor || undefined}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: i * 0.05 }}
             onClick={() => setSelected(ach.id)}
-            className="glass-card-hover p-6 cursor-pointer group"
+            className="glass-card-hover p-6 cursor-pointer group scroll-mt-24"
           >
             <div className="flex items-center gap-3 mb-3">
               <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
