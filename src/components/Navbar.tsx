@@ -1,17 +1,25 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { TrendingUp, Heart, LayoutDashboard, Menu, X } from "lucide-react";
+import { TrendingUp, Heart, LayoutDashboard, Menu, X, Trophy, Mic, Crown, BarChart3 } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 
 const NAV_ITEMS = [
+  { label: "Phoenix MUN", path: "/achievements#phoenix-mun", icon: Crown },
+  { label: "Yuvana 2025", path: "/achievements#yuvana-2025", icon: Mic },
+  { label: "Chess Club", path: "/achievements#chess-club", icon: Trophy },
   { label: "Home", path: "/", icon: TrendingUp },
   { label: "Kaia", path: "/dream-girl", icon: Heart },
-  { label: "Achievements", path: "/achievements", icon: LayoutDashboard },
+  { label: "Live Market", path: "/live", icon: BarChart3 },
 ];
 
 export function Navbar() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const isActive = (path: string) => {
+    const base = path.split("#")[0];
+    return location.pathname === base;
+  };
 
   return (
     <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/30">
@@ -25,14 +33,14 @@ export function Navbar() {
           </span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-2">
+        <div className="hidden lg:flex items-center gap-1">
           {NAV_ITEMS.map((item) => {
-            const active = location.pathname === item.path;
+            const active = isActive(item.path);
             return (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   active
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
@@ -46,7 +54,7 @@ export function Navbar() {
           <ThemeToggle />
         </div>
 
-        <div className="flex md:hidden items-center gap-2">
+        <div className="flex lg:hidden items-center gap-2">
           <ThemeToggle />
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -59,10 +67,10 @@ export function Navbar() {
       </div>
 
       {mobileOpen && (
-        <div className="md:hidden border-t border-border/30 bg-background/95 backdrop-blur-xl">
+        <div className="lg:hidden border-t border-border/30 bg-background/95 backdrop-blur-xl">
           <div className="container mx-auto px-4 py-3 space-y-1">
             {NAV_ITEMS.map((item) => {
-              const active = location.pathname === item.path;
+              const active = isActive(item.path);
               return (
                 <Link
                   key={item.path}

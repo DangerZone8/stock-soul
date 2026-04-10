@@ -5,7 +5,8 @@ import { X, Award, GraduationCap, Briefcase, Trophy, Users, Cpu, FlaskConical, P
 const ACHIEVEMENTS = [
   {
     id: "1",
-    title: "Model United Nations",
+    title: "Phoenix MUN",
+    anchor: "phoenix-mun",
     icon: Users,
     description: "Founded and led my own Model United Nations conference with support from family and friends. Built a strong team, hosted a successful event, and sharpened my communication, leadership, critical thinking, and quick decision-making skills while connecting with a wide range of people.",
   },
