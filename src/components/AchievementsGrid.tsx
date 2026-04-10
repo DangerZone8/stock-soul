@@ -5,13 +5,15 @@ import { X, Award, GraduationCap, Briefcase, Trophy, Users, Cpu, FlaskConical, P
 const ACHIEVEMENTS = [
   {
     id: "1",
-    title: "Model United Nations",
+    title: "Phoenix MUN",
+    anchor: "phoenix-mun",
     icon: Users,
     description: "Founded and led my own Model United Nations conference with support from family and friends. Built a strong team, hosted a successful event, and sharpened my communication, leadership, critical thinking, and quick decision-making skills while connecting with a wide range of people.",
   },
   {
     id: "2",
     title: "Chess Club",
+    anchor: "chess-club",
     icon: Trophy,
     description: "Launched and led my school's Chess Club with help from family and friends. Assembled a dedicated team and organized a successful chess competition, boosting my communication, leadership, strategic thinking, and social skills.",
   },
@@ -22,8 +24,15 @@ const ACHIEVEMENTS = [
     description: "Earned this national-level honor through intense preparation and flawless delegation. Perfected speeches, dominated rebuttals, and received strong support from family and friends.",
   },
   {
+    id: "3b",
+    title: "Honorable Mention (Model United Nations)",
+    icon: Award,
+    description: "Earned this honor through rigorous efforts and training.",
+  },
+  {
     id: "4",
     title: "Hosted Yuvana 2025",
+    anchor: "yuvana-2025",
     icon: Mic,
     description: "Selected as CEO of hosting and scripting for Yuvana 2025 after auditions and polling. Mastered voice modulation and scripting from teachers, guided other hosts through challenges, and delivered a cohesive, successful event. Teamwork truly makes the dream work.",
   },
@@ -137,12 +146,13 @@ export function AchievementsGrid() {
         {ACHIEVEMENTS.map((ach, i) => (
           <motion.div
             key={ach.id}
+            id={(ach as any).anchor || undefined}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: i * 0.05 }}
             onClick={() => setSelected(ach.id)}
-            className="glass-card-hover p-6 cursor-pointer group"
+            className="glass-card-hover p-6 cursor-pointer group scroll-mt-24"
           >
             <div className="flex items-center gap-3 mb-3">
               <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
