@@ -13,6 +13,7 @@ const ACHIEVEMENTS = [
   {
     id: "2",
     title: "Chess Club",
+    anchor: "chess-club",
     icon: Trophy,
     description: "Launched and led my school's Chess Club with help from family and friends. Assembled a dedicated team and organized a successful chess competition, boosting my communication, leadership, strategic thinking, and social skills.",
   },
@@ -23,8 +24,15 @@ const ACHIEVEMENTS = [
     description: "Earned this national-level honor through intense preparation and flawless delegation. Perfected speeches, dominated rebuttals, and received strong support from family and friends.",
   },
   {
+    id: "3b",
+    title: "Honorable Mention (Model United Nations)",
+    icon: Award,
+    description: "Earned this honor through rigorous efforts and training.",
+  },
+  {
     id: "4",
     title: "Hosted Yuvana 2025",
+    anchor: "yuvana-2025",
     icon: Mic,
     description: "Selected as CEO of hosting and scripting for Yuvana 2025 after auditions and polling. Mastered voice modulation and scripting from teachers, guided other hosts through challenges, and delivered a cohesive, successful event. Teamwork truly makes the dream work.",
   },
