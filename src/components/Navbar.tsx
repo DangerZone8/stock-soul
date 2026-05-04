@@ -1,15 +1,13 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { TrendingUp, Heart, LayoutDashboard, Menu, X, Trophy, Mic, Crown, BarChart3 } from "lucide-react";
+import { TrendingUp, Heart, Menu, X, Trophy, BarChart3 } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 
 const NAV_ITEMS = [
-  { label: "Phoenix MUN", path: "/achievements#phoenix-mun", icon: Crown },
-  { label: "Yuvana 2025", path: "/achievements#yuvana-2025", icon: Mic },
-  { label: "Chess Club", path: "/achievements#chess-club", icon: Trophy },
   { label: "Home", path: "/", icon: TrendingUp },
   { label: "Kaia", path: "/dream-girl", icon: Heart },
   { label: "Live Market", path: "/live", icon: BarChart3 },
+  { label: "Achievements", path: "/achievements", icon: Trophy },
 ];
 
 export function Navbar() {
