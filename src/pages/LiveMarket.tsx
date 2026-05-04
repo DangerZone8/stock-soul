@@ -72,7 +72,7 @@ const LiveMarket = () => {
   useEffect(() => {
     fetchChart(activeTicker);
     if (intervalRef.current) clearInterval(intervalRef.current);
-    intervalRef.current = setInterval(() => fetchChart(activeTicker), 60000);
+    intervalRef.current = setInterval(() => fetchChart(activeTicker), 30000);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
