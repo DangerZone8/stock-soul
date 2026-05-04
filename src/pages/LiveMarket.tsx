@@ -191,7 +191,7 @@ const LiveMarket = () => {
           <h1 className="text-3xl sm:text-5xl font-semibold tracking-tighter">
             Live <span className="text-primary">Market</span>
           </h1>
-          <p className="text-muted-foreground mt-2">Real-time prices & charts. Auto-updates every 60s.</p>
+          <p className="text-muted-foreground mt-2">Real-time prices & charts. Auto-updates every 30s.</p>
         </motion.div>
 
         {/* Search */}
