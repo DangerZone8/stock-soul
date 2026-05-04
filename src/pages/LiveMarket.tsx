@@ -82,7 +82,7 @@ const LiveMarket = () => {
     e.preventDefault();
     const q = query.trim();
     if (!q) return;
-    const looksLikeTicker = /^[A-Za-z0-9.\-]{1,15}$/.test(q) && !q.includes(" ");
+    const looksLikeTicker = /^[A-Z0-9]{1,6}([.\-][A-Z0-9]{1,6})?$/.test(q);
     if (looksLikeTicker) {
       setActiveTicker(q.toUpperCase());
       setQuery("");
