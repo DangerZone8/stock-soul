@@ -5,6 +5,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+type YahooQuote = {
+  symbol?: string;
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -22,7 +26,7 @@ serve(async (req) => {
       });
       if (!sRes.ok) throw new Error(`Search failed ${sRes.status}`);
       const sData = await sRes.json();
-      const quotes = (sData?.quotes || []).filter((q: any) => q.symbol);
+      const quotes = ((sData?.quotes || []) as YahooQuote[]).filter((quote) => quote.symbol);
       return new Response(JSON.stringify({ quotes }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -65,6 +69,7 @@ serve(async (req) => {
       currency: meta.currency,
       regularMarketPrice: meta.regularMarketPrice,
       previousClose: meta.chartPreviousClose ?? meta.previousClose,
+      regularMarketTime: meta.regularMarketTime,
       timestamps,
       closes,
       volumes,

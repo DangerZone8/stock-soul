@@ -36,10 +36,61 @@ interface ChartData {
   currency: string;
   regularMarketPrice: number;
   previousClose: number;
+  regularMarketTime?: number;
   timestamps: number[];
   closes: (number | null)[];
   volumes: (number | null)[];
 }
+
+const LIVE_REFRESH_MS = 30000;
+const MAX_LIVE_POINTS = 240;
+
+const buildLiveChartData = (incoming: ChartData, previous?: ChartData | null): ChartData => {
+  const base = previous?.symbol === incoming.symbol ? previous : incoming;
+  const timestamps = [...(base.timestamps || [])];
+  const closes = [...(base.closes || [])];
+  const volumes = [...(base.volumes || [])];
+  const incomingPoints = (incoming.timestamps || []).map((ts, index) => ({
+    timestamp: ts,
+    close: incoming.closes?.[index] ?? null,
+    volume: incoming.volumes?.[index] ?? null,
+  })).filter(point => point.close != null && Number.isFinite(point.close));
+
+  incomingPoints.forEach(point => {
+    const existingIndex = timestamps.indexOf(point.timestamp);
+    if (existingIndex >= 0) {
+      closes[existingIndex] = point.close;
+      volumes[existingIndex] = point.volume;
+    } else {
+      timestamps.push(point.timestamp);
+      closes.push(point.close);
+      volumes.push(point.volume);
+    }
+  });
+
+  const liveTimestamp = Math.floor(Date.now() / 1000);
+  const livePrice = incoming.regularMarketPrice;
+  if (Number.isFinite(livePrice)) {
+    timestamps.push(liveTimestamp);
+    closes.push(livePrice);
+    volumes.push(incoming.volumes?.at(-1) ?? null);
+  }
+
+  const sorted = timestamps.map((timestamp, index) => ({
+    timestamp,
+    close: closes[index],
+    volume: volumes[index],
+  })).filter(point => point.close != null && Number.isFinite(point.close as number))
+    .sort((a, b) => a.timestamp - b.timestamp)
+    .slice(-MAX_LIVE_POINTS);
+
+  return {
+    ...incoming,
+    timestamps: sorted.map(point => point.timestamp),
+    closes: sorted.map(point => point.close),
+    volumes: sorted.map(point => point.volume),
+  };
+};
 
 const LiveMarket = () => {
   const [query, setQuery] = useState("");
@@ -49,30 +100,35 @@ const LiveMarket = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isFetchingRef = useRef(false);
 
-  const fetchChart = useCallback(async (symbol: string) => {
-    setLoading(true);
+  const fetchChart = useCallback(async (symbol: string, mode: "initial" | "live" = "live") => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+    if (mode === "initial") setLoading(true);
     setError(null);
     try {
       const res = await fetch(
-        `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/stock-chart?symbol=${encodeURIComponent(symbol)}&interval=1m&range=1d`
+        `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/stock-chart?symbol=${encodeURIComponent(symbol)}&interval=1m&range=1d&t=${Date.now()}`,
+        { cache: "no-store" }
       );
       if (!res.ok) throw new Error("Failed to fetch");
-      const data = await res.json();
+      const data = await res.json() as ChartData & { error?: string };
       if (data.error) throw new Error(data.error);
-      setChartData(data);
+      setChartData(prev => buildLiveChartData(data, mode === "live" ? prev : null));
       setLastUpdated(new Date());
-    } catch (e: any) {
-      setError(e.message || "Failed to fetch data");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to fetch data");
     } finally {
-      setLoading(false);
+      if (mode === "initial") setLoading(false);
+      isFetchingRef.current = false;
     }
   }, []);
 
   useEffect(() => {
-    fetchChart(activeTicker);
+    fetchChart(activeTicker, "initial");
     if (intervalRef.current) clearInterval(intervalRef.current);
-    intervalRef.current = setInterval(() => fetchChart(activeTicker), 30000);
+    intervalRef.current = setInterval(() => fetchChart(activeTicker, "live"), LIVE_REFRESH_MS);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
@@ -82,7 +138,7 @@ const LiveMarket = () => {
     e.preventDefault();
     const q = query.trim();
     if (!q) return;
-    const looksLikeTicker = /^[A-Z0-9]{1,6}([.\-][A-Z0-9]{1,6})?$/.test(q);
+    const looksLikeTicker = /^[A-Z0-9]{1,6}([.-][A-Z0-9]{1,6})?$/.test(q);
     if (looksLikeTicker) {
       setActiveTicker(q.toUpperCase());
       setQuery("");
@@ -148,6 +204,7 @@ const LiveMarket = () => {
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: { duration: 800, easing: "easeOutQuart" as const },
     interaction: { intersect: false, mode: "index" as const },
     plugins: {
       legend: { display: false },
@@ -158,7 +215,7 @@ const LiveMarket = () => {
         padding: 12,
         displayColors: false,
         callbacks: {
-          label: (ctx: any) => `${chartData?.currency ?? "$"} ${Number(ctx.raw).toFixed(2)}`,
+          label: (ctx: { raw: unknown }) => `${chartData?.currency ?? "$"} ${Number(ctx.raw).toFixed(2)}`,
         },
       },
     },
