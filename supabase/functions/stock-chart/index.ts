@@ -12,11 +12,27 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
+    const searchQuery = url.searchParams.get("q");
+
+    // Search mode: lookup ticker by company name or partial ticker
+    if (searchQuery) {
+      const sUrl = `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(searchQuery)}&quotesCount=5&newsCount=0`;
+      const sRes = await fetch(sUrl, {
+        headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json" },
+      });
+      if (!sRes.ok) throw new Error(`Search failed ${sRes.status}`);
+      const sData = await sRes.json();
+      const quotes = (sData?.quotes || []).filter((q: any) => q.symbol);
+      return new Response(JSON.stringify({ quotes }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const symbol = url.searchParams.get("symbol");
     const interval = url.searchParams.get("interval") || "1m";
     const range = url.searchParams.get("range") || "1d";
 
-    if (!symbol || !/^[A-Za-z0-9.\-]{1,20}$/.test(symbol)) {
+    if (!symbol || !/^[A-Za-z0-9.\-=^]{1,20}$/.test(symbol)) {
       return new Response(
         JSON.stringify({ error: "Invalid symbol" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -78,11 +78,34 @@ const LiveMarket = () => {
     };
   }, [activeTicker, fetchChart]);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (query.trim()) {
-      setActiveTicker(query.trim().toUpperCase());
+    const q = query.trim();
+    if (!q) return;
+    const looksLikeTicker = /^[A-Za-z0-9.\-]{1,15}$/.test(q) && !q.includes(" ");
+    if (looksLikeTicker) {
+      setActiveTicker(q.toUpperCase());
       setQuery("");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/stock-chart?q=${encodeURIComponent(q)}`
+      );
+      const data = await res.json();
+      const first = data?.quotes?.[0]?.symbol;
+      if (first) {
+        setActiveTicker(first);
+        setQuery("");
+      } else {
+        setError(`No match found for "${q}"`);
+      }
+    } catch {
+      setError("Search failed. Try a ticker symbol.");
+    } finally {
+      setLoading(false);
     }
   };
 
