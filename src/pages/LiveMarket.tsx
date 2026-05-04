@@ -72,7 +72,7 @@ const LiveMarket = () => {
   useEffect(() => {
     fetchChart(activeTicker);
     if (intervalRef.current) clearInterval(intervalRef.current);
-    intervalRef.current = setInterval(() => fetchChart(activeTicker), 60000);
+    intervalRef.current = setInterval(() => fetchChart(activeTicker), 30000);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
@@ -82,7 +82,7 @@ const LiveMarket = () => {
     e.preventDefault();
     const q = query.trim();
     if (!q) return;
-    const looksLikeTicker = /^[A-Za-z0-9.\-]{1,15}$/.test(q) && !q.includes(" ");
+    const looksLikeTicker = /^[A-Z0-9]{1,6}([.\-][A-Z0-9]{1,6})?$/.test(q);
     if (looksLikeTicker) {
       setActiveTicker(q.toUpperCase());
       setQuery("");
@@ -191,7 +191,7 @@ const LiveMarket = () => {
           <h1 className="text-3xl sm:text-5xl font-semibold tracking-tighter">
             Live <span className="text-primary">Market</span>
           </h1>
-          <p className="text-muted-foreground mt-2">Real-time prices & charts. Auto-updates every 60s.</p>
+          <p className="text-muted-foreground mt-2">Real-time prices & charts. Auto-updates every 30s.</p>
         </motion.div>
 
         {/* Search */}
