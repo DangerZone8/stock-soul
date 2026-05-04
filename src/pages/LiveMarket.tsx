@@ -117,8 +117,8 @@ const LiveMarket = () => {
       if (data.error) throw new Error(data.error);
       setChartData(prev => buildLiveChartData(data, mode === "live" ? prev : null));
       setLastUpdated(new Date());
-    } catch (e: any) {
-      setError(e.message || "Failed to fetch data");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to fetch data");
     } finally {
       if (mode === "initial") setLoading(false);
       isFetchingRef.current = false;
@@ -138,7 +138,7 @@ const LiveMarket = () => {
     e.preventDefault();
     const q = query.trim();
     if (!q) return;
-    const looksLikeTicker = /^[A-Z0-9]{1,6}([.\-][A-Z0-9]{1,6})?$/.test(q);
+    const looksLikeTicker = /^[A-Z0-9]{1,6}([.-][A-Z0-9]{1,6})?$/.test(q);
     if (looksLikeTicker) {
       setActiveTicker(q.toUpperCase());
       setQuery("");
@@ -215,7 +215,7 @@ const LiveMarket = () => {
         padding: 12,
         displayColors: false,
         callbacks: {
-          label: (ctx: any) => `${chartData?.currency ?? "$"} ${Number(ctx.raw).toFixed(2)}`,
+          label: (ctx: { raw: unknown }) => `${chartData?.currency ?? "$"} ${Number(ctx.raw).toFixed(2)}`,
         },
       },
     },
