@@ -65,6 +65,7 @@ serve(async (req) => {
       currency: meta.currency,
       regularMarketPrice: meta.regularMarketPrice,
       previousClose: meta.chartPreviousClose ?? meta.previousClose,
+      regularMarketTime: meta.regularMarketTime,
       timestamps,
       closes,
       volumes,
