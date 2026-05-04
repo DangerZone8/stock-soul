@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { Search, TrendingUp, TrendingDown, RefreshCw, Clock, DollarSign, BarChart3, Volume2 } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, RefreshCw, Clock, DollarSign, BarChart3, Volume2, Sparkles, Heart, Newspaper } from "lucide-react";
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -15,6 +15,7 @@ import {
 import { Navbar } from "@/components/Navbar";
 import { CandlestickBackground } from "@/components/CandlestickBackground";
 import { Footer } from "@/components/Footer";
+import { DreamGirlChat } from "@/components/DreamGirlChat";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler);
 
@@ -42,7 +43,16 @@ interface ChartData {
   volumes: (number | null)[];
 }
 
+interface KaiaTip {
+  action: "buy" | "hold" | "sell";
+  sentiment: "bullish" | "neutral" | "bearish";
+  move_reason: string;
+  take: string;
+  headlines?: string[];
+}
+
 const LIVE_REFRESH_MS = 30000;
+const TIP_REFRESH_MS = 90000;
 const MAX_LIVE_POINTS = 240;
 
 const buildLiveChartData = (incoming: ChartData, previous?: ChartData | null): ChartData => {
@@ -99,8 +109,12 @@ const LiveMarket = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [tip, setTip] = useState<KaiaTip | null>(null);
+  const [tipLoading, setTipLoading] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const tipIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isFetchingRef = useRef(false);
+  const isFetchingTipRef = useRef(false);
 
   const fetchChart = useCallback(async (symbol: string, mode: "initial" | "live" = "live") => {
     if (isFetchingRef.current) return;
@@ -125,7 +139,36 @@ const LiveMarket = () => {
     }
   }, []);
 
+  const fetchTip = useCallback(async (symbol: string, price: number, changePercent: number, currency: string) => {
+    if (isFetchingTipRef.current) return;
+    if (!Number.isFinite(price) || price <= 0) return;
+    isFetchingTipRef.current = true;
+    setTipLoading(true);
+    try {
+      const res = await fetch(
+        `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/kaia-tip`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ symbol, price, changePercent, currency }),
+        }
+      );
+      if (!res.ok) throw new Error("tip failed");
+      const data = await res.json();
+      if (!data.error) setTip(data);
+    } catch {
+      /* silent */
+    } finally {
+      setTipLoading(false);
+      isFetchingTipRef.current = false;
+    }
+  }, []);
+
   useEffect(() => {
+    setTip(null);
     fetchChart(activeTicker, "initial");
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => fetchChart(activeTicker, "live"), LIVE_REFRESH_MS);
@@ -133,6 +176,26 @@ const LiveMarket = () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [activeTicker, fetchChart]);
+
+  // Refresh Kaia's tip when chart data updates (throttled)
+  useEffect(() => {
+    if (!chartData) return;
+    const price = chartData.regularMarketPrice;
+    const prev = chartData.previousClose ?? price;
+    const pct = prev > 0 ? ((price - prev) / prev) * 100 : 0;
+    fetchTip(chartData.symbol, price, pct, chartData.currency);
+    if (tipIntervalRef.current) clearInterval(tipIntervalRef.current);
+    tipIntervalRef.current = setInterval(() => {
+      const cur = chartData.regularMarketPrice;
+      const cprev = chartData.previousClose ?? cur;
+      const cpct = cprev > 0 ? ((cur - cprev) / cprev) * 100 : 0;
+      fetchTip(chartData.symbol, cur, cpct, chartData.currency);
+    }, TIP_REFRESH_MS);
+    return () => {
+      if (tipIntervalRef.current) clearInterval(tipIntervalRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chartData?.symbol]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,7 +234,6 @@ const LiveMarket = () => {
   const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
   const isPositive = change >= 0;
 
-  // Build chart
   const validPoints = (chartData?.timestamps || []).map((ts, i) => ({
     time: new Date(ts * 1000),
     close: chartData?.closes?.[i],
@@ -233,6 +295,12 @@ const LiveMarket = () => {
 
   const totalVolume = validPoints.reduce((s, p) => s + ((p.vol as number) || 0), 0);
 
+  const actionStyles: Record<string, string> = {
+    buy: "bg-green-500/15 text-green-500 border-green-500/30",
+    hold: "bg-yellow-500/15 text-yellow-500 border-yellow-500/30",
+    sell: "bg-red-500/15 text-red-500 border-red-500/30",
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <CandlestickBackground />
@@ -240,120 +308,181 @@ const LiveMarket = () => {
 
       <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 relative z-10">
         {/* Header */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
           <div className="flex items-center gap-2 mb-2">
             <BarChart3 className="w-4 h-4 text-primary" strokeWidth={1.5} />
-            <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Live Data</span>
+            <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Live Data + Kaia AI</span>
           </div>
           <h1 className="text-3xl sm:text-5xl font-semibold tracking-tighter">
             Live <span className="text-primary">Market</span>
           </h1>
-          <p className="text-muted-foreground mt-2">Real-time prices & charts. Auto-updates every 30s.</p>
+          <p className="text-muted-foreground mt-2">Real-time prices, charts & Kaia's smart tips. Auto-updates every 30s.</p>
         </motion.div>
 
-        {/* Search */}
-        <motion.form
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          onSubmit={handleSearch}
-          className="mb-6"
-        >
-          <div className="relative max-w-2xl">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-            <input
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              placeholder="Search any stock or crypto... (NVDA, BTC-USD, RELIANCE.NS)"
-              className="w-full h-14 pl-12 pr-4 rounded-xl bg-secondary/50 border border-border/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 text-base transition-all"
-            />
-          </div>
-        </motion.form>
-
-        {/* Popular Tickers */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="flex flex-wrap gap-2 mb-8"
-        >
-          {POPULAR_TICKERS.map(t => (
-            <button
-              key={t.symbol}
-              onClick={() => setActiveTicker(t.symbol)}
-              className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
-                activeTicker === t.symbol
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary border border-border/30"
-              }`}
+        {/* Split layout: chart left, Kaia right */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* LEFT: Search + Chart + Tip */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Search */}
+            <motion.form
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              onSubmit={handleSearch}
             >
-              {t.label}
-            </button>
-          ))}
-        </motion.div>
-
-        {/* Price Header */}
-        {chartData && !error && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="glass-card p-6 sm:p-8 mb-6"
-          >
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-              <div>
-                <div className="text-sm text-muted-foreground font-mono mb-1">{chartData.symbol}</div>
-                <div className="text-4xl sm:text-5xl font-bold tracking-tight font-mono">
-                  {chartData.currency === "INR" ? "₹" : "$"}{price.toFixed(2)}
-                </div>
-                <div className={`flex items-center gap-2 mt-2 text-lg font-medium ${isPositive ? "text-green-500" : "text-red-500"}`}>
-                  {isPositive ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
-                  <span>{isPositive ? "+" : ""}{change.toFixed(2)} ({isPositive ? "+" : ""}{changePercent.toFixed(2)}%)</span>
-                </div>
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <input
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  placeholder="Search any stock or crypto... (NVDA, BTC-USD, RELIANCE.NS)"
+                  className="w-full h-14 pl-12 pr-4 rounded-xl bg-secondary/50 border border-border/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 text-base transition-all"
+                />
               </div>
+            </motion.form>
 
-              <div className="flex flex-wrap gap-4 sm:gap-6 text-sm">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <DollarSign className="w-4 h-4" />
-                  <span>Prev Close: {prevClose.toFixed(2)}</span>
+            {/* Popular Tickers */}
+            <div className="flex flex-wrap gap-2">
+              {POPULAR_TICKERS.map(t => (
+                <button
+                  key={t.symbol}
+                  onClick={() => setActiveTicker(t.symbol)}
+                  className={`px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                    activeTicker === t.symbol
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary border border-border/30"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Price Header */}
+            {chartData && !error && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="glass-card p-5 sm:p-6"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                  <div>
+                    <div className="text-xs text-muted-foreground font-mono mb-1">{chartData.symbol}</div>
+                    <div className="text-3xl sm:text-4xl font-bold tracking-tight font-mono">
+                      {chartData.currency === "INR" ? "₹" : "$"}{price.toFixed(2)}
+                    </div>
+                    <div className={`flex items-center gap-2 mt-2 text-base font-medium ${isPositive ? "text-green-500" : "text-red-500"}`}>
+                      {isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                      <span>{isPositive ? "+" : ""}{change.toFixed(2)} ({isPositive ? "+" : ""}{changePercent.toFixed(2)}%)</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-3 sm:gap-4 text-xs">
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <DollarSign className="w-3.5 h-3.5" />
+                      <span>Prev: {prevClose.toFixed(2)}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <Volume2 className="w-3.5 h-3.5" />
+                      <span>Vol: {(totalVolume / 1e6).toFixed(1)}M</span>
+                    </div>
+                    {lastUpdated && (
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>{lastUpdated.toLocaleTimeString()}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Volume2 className="w-4 h-4" />
-                  <span>Vol: {(totalVolume / 1e6).toFixed(1)}M</span>
+              </motion.div>
+            )}
+
+            {/* Chart */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="glass-card p-4 sm:p-6"
+            >
+              {loading && !chartData && (
+                <div className="h-[350px] flex items-center justify-center text-muted-foreground">
+                  <RefreshCw className="w-6 h-6 animate-spin mr-2" /> Loading chart...
                 </div>
-                {lastUpdated && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Clock className="w-4 h-4" />
-                    <span>{lastUpdated.toLocaleTimeString()}</span>
+              )}
+              {error && (
+                <div className="h-[350px] flex items-center justify-center text-destructive">
+                  {error}. Try a different ticker.
+                </div>
+              )}
+              {chartData && !error && (
+                <div className="h-[300px] sm:h-[400px]">
+                  <Line data={chartConfig} options={chartOptions} />
+                </div>
+              )}
+            </motion.div>
+
+            {/* Kaia's Tip */}
+            {chartData && !error && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="glass-card p-5 sm:p-6"
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <h3 className="font-semibold text-sm">Kaia's Take on {chartData.symbol}</h3>
+                  {tipLoading && <RefreshCw className="w-3 h-3 animate-spin text-muted-foreground" />}
+                </div>
+
+                {!tip && !tipLoading && (
+                  <p className="text-sm text-muted-foreground">Analyzing live data...</p>
+                )}
+
+                {tip && (
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${actionStyles[tip.action] || actionStyles.hold}`}>
+                        {tip.action}
+                      </span>
+                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-secondary/50 border border-border/40 text-muted-foreground capitalize">
+                        Sentiment: {tip.sentiment}
+                      </span>
+                    </div>
+                    <p className="text-sm text-foreground leading-relaxed">{tip.take}</p>
+                    <div className="text-xs text-muted-foreground border-t border-border/30 pt-2">
+                      <span className="font-semibold text-foreground">Why it's moving: </span>{tip.move_reason}
+                    </div>
+                    {tip.headlines && tip.headlines.length > 0 && (
+                      <div className="pt-2 border-t border-border/30">
+                        <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground mb-2">
+                          <Newspaper className="w-3 h-3" /> Latest headlines
+                        </div>
+                        <ul className="space-y-1">
+                          {tip.headlines.slice(0, 4).map((h, i) => (
+                            <li key={i} className="text-xs text-muted-foreground leading-relaxed">• {h}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 )}
+              </motion.div>
+            )}
+          </div>
+
+          {/* RIGHT: Kaia Chat */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="lg:col-span-1"
+          >
+            <div className="lg:sticky lg:top-20">
+              <div className="flex items-center gap-2 mb-3">
+                <Heart className="w-4 h-4 text-primary" />
+                <h2 className="font-semibold text-sm">Chat with Kaia</h2>
               </div>
+              <DreamGirlChat />
             </div>
           </motion.div>
-        )}
-
-        {/* Chart */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="glass-card p-4 sm:p-6 mb-8"
-        >
-          {loading && !chartData && (
-            <div className="h-[400px] flex items-center justify-center text-muted-foreground">
-              <RefreshCw className="w-6 h-6 animate-spin mr-2" /> Loading chart...
-            </div>
-          )}
-          {error && (
-            <div className="h-[400px] flex items-center justify-center text-destructive">
-              {error}. Try a different ticker.
-            </div>
-          )}
-          {chartData && !error && (
-            <div className="h-[350px] sm:h-[450px]">
-              <Line data={chartConfig} options={chartOptions} />
-            </div>
-          )}
-        </motion.div>
+        </div>
       </div>
 
       <Footer />
