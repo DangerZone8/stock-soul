@@ -457,10 +457,35 @@ const LiveMarket = () => {
                       <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${actionStyles[tip.action] || actionStyles.hold}`}>
                         {actionLabels[tip.action] || tip.action}
                       </span>
+                      {tip.confidence && (
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium border capitalize ${
+                          tip.confidence === "high" ? "bg-primary/15 text-primary border-primary/30" :
+                          tip.confidence === "medium" ? "bg-secondary/50 text-foreground border-border/40" :
+                          "bg-muted/40 text-muted-foreground border-border/30"
+                        }`}>
+                          Confidence: {tip.confidence}
+                        </span>
+                      )}
                       <span className="px-3 py-1 rounded-full text-xs font-medium bg-secondary/50 border border-border/40 text-muted-foreground capitalize">
                         Sentiment: {tip.sentiment}
                       </span>
                     </div>
+                    {(tip.entry != null || tip.stop != null || tip.target != null) && (
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div className="rounded-lg border border-border/40 bg-secondary/30 p-2">
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono">Entry</div>
+                          <div className="font-mono font-semibold text-foreground">{tip.entry?.toFixed(2) ?? "—"}</div>
+                        </div>
+                        <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-2">
+                          <div className="text-[10px] uppercase tracking-wider text-red-500/80 font-mono">Stop</div>
+                          <div className="font-mono font-semibold text-red-500">{tip.stop?.toFixed(2) ?? "—"}</div>
+                        </div>
+                        <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-2">
+                          <div className="text-[10px] uppercase tracking-wider text-green-500/80 font-mono">Target</div>
+                          <div className="font-mono font-semibold text-green-500">{tip.target?.toFixed(2) ?? "—"}</div>
+                        </div>
+                      </div>
+                    )}
                     <p className="text-sm text-foreground leading-relaxed">{tip.take}</p>
                     <div className="text-xs text-muted-foreground border-t border-border/30 pt-2">
                       <span className="font-semibold text-foreground">Why it's moving: </span>{tip.move_reason}
