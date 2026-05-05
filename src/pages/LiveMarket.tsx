@@ -45,7 +45,11 @@ interface ChartData {
 
 interface KaiaTip {
   action: "strong_buy" | "buy" | "hold" | "sell" | "strong_sell";
+  confidence?: "high" | "medium" | "low";
   sentiment: "bullish" | "neutral" | "bearish";
+  entry?: number;
+  stop?: number;
+  target?: number;
   move_reason: string;
   take: string;
   headlines?: string[];
