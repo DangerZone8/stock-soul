@@ -44,7 +44,7 @@ interface ChartData {
 }
 
 interface KaiaTip {
-  action: "buy" | "hold" | "sell";
+  action: "strong_buy" | "buy" | "hold" | "sell" | "strong_sell";
   sentiment: "bullish" | "neutral" | "bearish";
   move_reason: string;
   take: string;
@@ -296,9 +296,18 @@ const LiveMarket = () => {
   const totalVolume = validPoints.reduce((s, p) => s + ((p.vol as number) || 0), 0);
 
   const actionStyles: Record<string, string> = {
+    strong_buy: "bg-green-500/25 text-green-400 border-green-500/50",
     buy: "bg-green-500/15 text-green-500 border-green-500/30",
     hold: "bg-yellow-500/15 text-yellow-500 border-yellow-500/30",
     sell: "bg-red-500/15 text-red-500 border-red-500/30",
+    strong_sell: "bg-red-500/25 text-red-400 border-red-500/50",
+  };
+  const actionLabels: Record<string, string> = {
+    strong_buy: "Strong Buy",
+    buy: "Buy",
+    hold: "Hold",
+    sell: "Sell",
+    strong_sell: "Strong Sell",
   };
 
   return (
@@ -440,7 +449,7 @@ const LiveMarket = () => {
                   <div className="space-y-3">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${actionStyles[tip.action] || actionStyles.hold}`}>
-                        {tip.action}
+                        {actionLabels[tip.action] || tip.action}
                       </span>
                       <span className="px-3 py-1 rounded-full text-xs font-medium bg-secondary/50 border border-border/40 text-muted-foreground capitalize">
                         Sentiment: {tip.sentiment}

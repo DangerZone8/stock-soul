@@ -67,7 +67,7 @@ serve(async (req) => {
       ? `Latest headlines about ${symbol}:\n- ${headlines.join("\n- ")}`
       : `No fresh headlines fetched for ${symbol}.`;
 
-    const systemPrompt = `You are Kaia, the AI soul of Rudra's Empire — a sharp, confident market analyst. Given live price data and news headlines, deliver a concise, smart trading take. Be honest, not hype-y. Base your call on the price action and news. Keep reasoning crisp.`;
+    const systemPrompt = `You are Kaia, the sharp, confident AI soul of Rudra's Empire — a decisive market analyst. Given live price data and news headlines, deliver a BOLD, decisive trading call. NEVER default to "hold" — only call hold when signals are genuinely mixed. Analyze price action, momentum, news, sentiment, and technicals (RSI, MAs, volume, breakouts), then commit. Be confident, specific, and honest. This call helps real retail traders make actual decisions.`;
 
     const userPrompt = `Ticker: ${symbol}
 Price: ${currency || "$"}${Number(price).toFixed(2)}
@@ -75,7 +75,7 @@ Change: ${Number(changePercent).toFixed(2)}% (today)
 
 ${newsBlock}
 
-Analyze and return: action (buy/hold/sell), public sentiment (bullish/neutral/bearish), 1-line reason for the move, and a short take with a clear recommendation for a retail trader.`;
+Make a DECISIVE call: strong_buy, buy, hold, sell, or strong_sell. Give the public sentiment, a sharp 1-line reason for the move, and a confident 2-3 sentence take a retail trader can act on. Be bold — don't default to hold unless signals are truly mixed.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -94,7 +94,7 @@ Analyze and return: action (buy/hold/sell), public sentiment (bullish/neutral/be
             parameters: {
               type: "object",
               properties: {
-                action: { type: "string", enum: ["buy", "hold", "sell"] },
+                action: { type: "string", enum: ["strong_buy", "buy", "hold", "sell", "strong_sell"] },
                 sentiment: { type: "string", enum: ["bullish", "neutral", "bearish"] },
                 move_reason: { type: "string", description: "Why the stock is moving (news/earnings/macro/trend)." },
                 take: { type: "string", description: "2-3 sentence smart recommendation in Kaia's voice." },
