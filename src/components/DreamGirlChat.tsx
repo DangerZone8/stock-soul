@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Send, Heart, Sparkles, Bot, Paperclip, X } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useToast } from "@/hooks/use-toast";
 
 type KaiaMode = "flirty" | "default" | "savage" | null;
