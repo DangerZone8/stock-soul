@@ -94,7 +94,7 @@ Make a DECISIVE call: strong_buy, buy, hold, sell, or strong_sell. Give the publ
             parameters: {
               type: "object",
               properties: {
-                action: { type: "string", enum: ["buy", "hold", "sell"] },
+                action: { type: "string", enum: ["strong_buy", "buy", "hold", "sell", "strong_sell"] },
                 sentiment: { type: "string", enum: ["bullish", "neutral", "bearish"] },
                 move_reason: { type: "string", description: "Why the stock is moving (news/earnings/macro/trend)." },
                 take: { type: "string", description: "2-3 sentence smart recommendation in Kaia's voice." },
