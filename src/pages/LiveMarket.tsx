@@ -189,13 +189,13 @@ const LiveMarket = () => {
     const price = chartData.regularMarketPrice;
     const prev = chartData.previousClose ?? price;
     const pct = prev > 0 ? ((price - prev) / prev) * 100 : 0;
-    fetchTip(chartData.symbol, price, pct, chartData.currency);
+    fetchTip(chartData.symbol, price, pct, chartData.currency, chartData.closes, chartData.volumes);
     if (tipIntervalRef.current) clearInterval(tipIntervalRef.current);
     tipIntervalRef.current = setInterval(() => {
       const cur = chartData.regularMarketPrice;
       const cprev = chartData.previousClose ?? cur;
       const cpct = cprev > 0 ? ((cur - cprev) / cprev) * 100 : 0;
-      fetchTip(chartData.symbol, cur, cpct, chartData.currency);
+      fetchTip(chartData.symbol, cur, cpct, chartData.currency, chartData.closes, chartData.volumes);
     }, TIP_REFRESH_MS);
     return () => {
       if (tipIntervalRef.current) clearInterval(tipIntervalRef.current);
