@@ -449,7 +449,7 @@ const LiveMarket = () => {
                   <div className="space-y-3">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${actionStyles[tip.action] || actionStyles.hold}`}>
-                        {tip.action}
+                        {actionLabels[tip.action] || tip.action}
                       </span>
                       <span className="px-3 py-1 rounded-full text-xs font-medium bg-secondary/50 border border-border/40 text-muted-foreground capitalize">
                         Sentiment: {tip.sentiment}
