@@ -143,12 +143,14 @@ const LiveMarket = () => {
     }
   }, []);
 
-  const fetchTip = useCallback(async (symbol: string, price: number, changePercent: number, currency: string) => {
+  const fetchTip = useCallback(async (symbol: string, price: number, changePercent: number, currency: string, closes: (number | null)[], volumes: (number | null)[]) => {
     if (isFetchingTipRef.current) return;
     if (!Number.isFinite(price) || price <= 0) return;
     isFetchingTipRef.current = true;
     setTipLoading(true);
     try {
+      const cleanCloses = (closes || []).filter((c): c is number => c != null && Number.isFinite(c));
+      const cleanVols = (volumes || []).map((v) => (v == null ? 0 : v));
       const res = await fetch(
         `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/kaia-tip`,
         {
@@ -157,7 +159,7 @@ const LiveMarket = () => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
-          body: JSON.stringify({ symbol, price, changePercent, currency }),
+          body: JSON.stringify({ symbol, price, changePercent, currency, closes: cleanCloses, volumes: cleanVols }),
         }
       );
       if (!res.ok) throw new Error("tip failed");
