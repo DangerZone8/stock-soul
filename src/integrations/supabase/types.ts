@@ -14,6 +14,102 @@ export type Database = {
   }
   public: {
     Tables: {
+      holdings: {
+        Row: {
+          avg_buy_price: number
+          created_at: string
+          currency: string
+          id: string
+          quantity: number
+          symbol: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avg_buy_price?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          quantity?: number
+          symbol: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avg_buy_price?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          quantity?: number
+          symbol?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          coins: number
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+          last_reward_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          coins?: number
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id: string
+          last_reward_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          coins?: number
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          last_reward_date?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          coins_delta: number
+          created_at: string
+          id: string
+          price: number
+          quantity: number
+          symbol: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          coins_delta: number
+          created_at?: string
+          id?: string
+          price: number
+          quantity: number
+          symbol: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          coins_delta?: number
+          created_at?: string
+          id?: string
+          price?: number
+          quantity?: number
+          symbol?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       waitlist: {
         Row: {
           created_at: string
@@ -55,7 +151,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      claim_daily_reward: {
+        Args: never
+        Returns: {
+          claimed: boolean
+          coins: number
+          message: string
+        }[]
+      }
+      execute_trade: {
+        Args: {
+          p_currency: string
+          p_price: number
+          p_quantity: number
+          p_symbol: string
+          p_type: string
+        }
+        Returns: {
+          coins: number
+          message: string
+          success: boolean
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
