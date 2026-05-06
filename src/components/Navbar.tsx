@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { TrendingUp, Heart, Menu, X, Trophy, BarChart3 } from "lucide-react";
+import { TrendingUp, Heart, Menu, X, Trophy, BarChart3, Coins, LogOut, LogIn, Briefcase } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
+import { useAuth } from "@/contexts/AuthContext";
 
 const NAV_ITEMS = [
   { label: "Home", path: "/", icon: TrendingUp },
   { label: "Kaia", path: "/dream-girl", icon: Heart },
   { label: "Live Market", path: "/live", icon: BarChart3 },
+  { label: "Stock Investor", path: "/investor", icon: Briefcase },
   { label: "Achievements", path: "/achievements", icon: Trophy },
 ];
 
