@@ -15,6 +15,7 @@ const NAV_ITEMS = [
 export function Navbar() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, profile, signOut } = useAuth();
 
   const isActive = (path: string) => {
     const base = path.split("#")[0];
@@ -52,9 +53,30 @@ export function Navbar() {
             );
           })}
           <ThemeToggle />
+          {user && profile && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-sm font-mono font-semibold">
+              <Coins className="w-4 h-4" />
+              {Math.floor(profile.coins)}
+            </div>
+          )}
+          {user ? (
+            <button onClick={signOut} className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/50">
+              <LogOut className="w-4 h-4" /> <span className="hidden xl:inline">Sign out</span>
+            </button>
+          ) : (
+            <Link to="/auth" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90">
+              <LogIn className="w-4 h-4" /> Sign in
+            </Link>
+          )}
         </div>
 
         <div className="flex lg:hidden items-center gap-2">
+          {user && profile && (
+            <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-mono font-semibold">
+              <Coins className="w-3.5 h-3.5" />
+              {Math.floor(profile.coins)}
+            </div>
+          )}
           <ThemeToggle />
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
