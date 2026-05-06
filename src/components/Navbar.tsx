@@ -109,6 +109,15 @@ export function Navbar() {
                 </Link>
               );
             })}
+            {user ? (
+              <button onClick={() => { signOut(); setMobileOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/50">
+                <LogOut className="w-5 h-5" /> Sign out
+              </button>
+            ) : (
+              <Link to="/auth" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium bg-primary/10 text-primary">
+                <LogIn className="w-5 h-5" /> Sign in
+              </Link>
+            )}
           </div>
         </div>
       )}
