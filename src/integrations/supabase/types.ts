@@ -55,7 +55,11 @@ export type Database = {
           email: string | null
           id: string
           last_reward_date: string | null
+          net_profit: number
+          referral_code: string | null
+          referred_by: string | null
           updated_at: string
+          username: string | null
         }
         Insert: {
           coins?: number
@@ -64,7 +68,11 @@ export type Database = {
           email?: string | null
           id: string
           last_reward_date?: string | null
+          net_profit?: number
+          referral_code?: string | null
+          referred_by?: string | null
           updated_at?: string
+          username?: string | null
         }
         Update: {
           coins?: number
@@ -73,7 +81,11 @@ export type Database = {
           email?: string | null
           id?: string
           last_reward_date?: string | null
+          net_profit?: number
+          referral_code?: string | null
+          referred_by?: string | null
           updated_at?: string
+          username?: string | null
         }
         Relationships: []
       }
@@ -169,6 +181,23 @@ export type Database = {
         }
         Returns: {
           coins: number
+          message: string
+          success: boolean
+        }[]
+      }
+      get_leaderboard: {
+        Args: { p_kind?: string; p_limit?: number }
+        Returns: {
+          coins: number
+          net_profit: number
+          rank: number
+          user_id: string
+          username: string
+        }[]
+      }
+      redeem_referral: {
+        Args: { p_code: string }
+        Returns: {
           message: string
           success: boolean
         }[]

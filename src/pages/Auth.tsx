@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { TrendingUp, Mail, Lock, Loader2 } from "lucide-react";
+import { TrendingUp, Mail, Lock, Loader2, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 
@@ -11,15 +11,21 @@ const AuthPage = () => {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => { if (user) navigate("/", { replace: true }); }, [user, navigate]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === "signup" && username.trim().length < 3) {
+      toast({ title: "Username required", description: "Pick a username (3+ chars).", variant: "destructive" });
+      return;
+    }
     setBusy(true);
-    const fn = mode === "signin" ? signIn : signUp;
-    const { error } = await fn(email, password);
+    const { error } = mode === "signin"
+      ? await signIn(email, password)
+      : await signUp(email, password, username.trim());
     setBusy(false);
     if (error) toast({ title: "Auth error", description: error, variant: "destructive" });
     else if (mode === "signup") toast({ title: "Account created!", description: "Welcome to StockSoul. +100 starter coins!" });
@@ -43,6 +49,13 @@ const AuthPage = () => {
         </p>
 
         <form onSubmit={submit} className="space-y-3">
+          {mode === "signup" && (
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input type="text" required minLength={3} maxLength={20} value={username} onChange={e => setUsername(e.target.value)} placeholder="Username"
+                className="w-full h-11 pl-10 pr-3 rounded-lg bg-secondary/50 border border-border/50 focus:outline-none focus:ring-2 focus:ring-primary/40" />
+            </div>
+          )}
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com"

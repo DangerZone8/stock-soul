@@ -7,6 +7,10 @@ interface Profile {
   id: string;
   email: string | null;
   display_name: string | null;
+  username: string | null;
+  referral_code: string | null;
+  referred_by: string | null;
+  net_profit: number;
   coins: number;
   last_reward_date: string | null;
 }
@@ -17,7 +21,7 @@ interface AuthCtx {
   profile: Profile | null;
   loading: boolean;
   refreshProfile: () => Promise<void>;
-  signUp: (email: string, password: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string, username?: string) => Promise<{ error: string | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
@@ -81,10 +85,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => { supabase.removeChannel(ch); };
   }, [user]);
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, username?: string) => {
     const { error } = await supabase.auth.signUp({
       email, password,
-      options: { emailRedirectTo: `${window.location.origin}/` },
+      options: {
+        emailRedirectTo: `${window.location.origin}/`,
+        data: username ? { username, full_name: username } : undefined,
+      },
     });
     return { error: error?.message ?? null };
   };
