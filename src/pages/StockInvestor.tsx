@@ -290,6 +290,13 @@ const StockInvestor = () => {
                 <div className="text-xs text-muted-foreground">Portfolio Value</div>
                 <div className="font-mono font-bold">{Math.round(portfolioValue)} <span className="text-xs text-muted-foreground">coins</span></div>
               </div>
+              <div className={`glass-card px-4 py-2.5 ${totalNetProfit >= 0 ? "border-green-500/40" : "border-red-500/40"}`}>
+                <div className="text-xs text-muted-foreground">Net Profit</div>
+                <div className={`font-mono font-bold flex items-center gap-1 ${totalNetProfit >= 0 ? "text-green-500" : "text-red-500"}`}>
+                  {totalNetProfit >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                  {totalNetProfit >= 0 ? "+" : ""}{totalNetProfit.toFixed(2)}
+                </div>
+              </div>
             </div>
           </div>
         </motion.div>
