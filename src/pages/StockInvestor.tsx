@@ -204,7 +204,9 @@ const StockInvestor = () => {
 
   const portfolioValue = holdings.reduce((s, h) => s + (livePrices[h.symbol]?.price ?? h.avg_buy_price) * h.quantity, 0);
   const totalCost = holdings.reduce((s, h) => s + h.avg_buy_price * h.quantity, 0);
-  const totalPnL = portfolioValue - totalCost;
+  const unrealizedPnL = portfolioValue - totalCost;
+  const realizedPnL = profile?.net_profit ?? 0;
+  const totalNetProfit = realizedPnL + unrealizedPnL;
   const rank = rankFor(profile?.coins ?? 0);
 
   const validPts = (quote?.timestamps || []).map((t, i) => ({ t, c: quote?.closes?.[i] })).filter(p => p.c != null && Number.isFinite(p.c as number));
