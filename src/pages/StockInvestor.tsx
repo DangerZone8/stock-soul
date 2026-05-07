@@ -365,7 +365,10 @@ const StockInvestor = () => {
                 <div className="flex justify-between"><span className="text-muted-foreground">Holdings value</span><span className="font-mono font-semibold">{portfolioValue.toFixed(2)}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Total cost</span><span className="font-mono">{totalCost.toFixed(2)}</span></div>
                 <div className="flex justify-between font-semibold"><span>Unrealized P/L</span>
-                  <span className={`font-mono ${totalPnL >= 0 ? "text-green-500" : "text-red-500"}`}>{totalPnL >= 0 ? "+" : ""}{totalPnL.toFixed(2)}</span>
+                  <span className={`font-mono ${unrealizedPnL >= 0 ? "text-green-500" : "text-red-500"}`}>{unrealizedPnL >= 0 ? "+" : ""}{unrealizedPnL.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Realized P/L</span>
+                  <span className={`font-mono ${realizedPnL >= 0 ? "text-green-500" : "text-red-500"}`}>{realizedPnL >= 0 ? "+" : ""}{realizedPnL.toFixed(2)}</span>
                 </div>
               </div>
 
