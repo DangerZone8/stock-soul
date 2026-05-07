@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, TrendingUp, TrendingDown, RefreshCw, Coins, Briefcase, Trophy, Sparkles, Plus, Minus } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, RefreshCw, Coins, Briefcase, Trophy, Sparkles, Plus, Minus, Users, Copy, Share2, Crown, Medal } from "lucide-react";
 import { Line } from "react-chartjs-2";
 import "chart.js/auto";
 import { Navbar } from "@/components/Navbar";
 import { CandlestickBackground } from "@/components/CandlestickBackground";
 import { Footer } from "@/components/Footer";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
