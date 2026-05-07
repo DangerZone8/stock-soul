@@ -432,7 +432,6 @@ const StockInvestor = () => {
             </div>
           </div>
         </div>
-        </div>
           </TabsContent>
 
           <TabsContent value="leaderboard">
@@ -550,6 +549,8 @@ const StockInvestor = () => {
             </div>
           </TabsContent>
         </Tabs>
+      </div>
+
       <Footer />
     </div>
   );
