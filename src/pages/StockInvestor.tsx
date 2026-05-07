@@ -301,6 +301,14 @@ const StockInvestor = () => {
           </div>
         </motion.div>
 
+        <Tabs defaultValue="trade" className="w-full">
+          <TabsList className="mb-6 bg-secondary/40 border border-border/30">
+            <TabsTrigger value="trade" className="gap-1.5"><Briefcase className="w-3.5 h-3.5" />Trade</TabsTrigger>
+            <TabsTrigger value="leaderboard" className="gap-1.5"><Trophy className="w-3.5 h-3.5" />Leaderboard</TabsTrigger>
+            <TabsTrigger value="referral" className="gap-1.5"><Users className="w-3.5 h-3.5" />Referral</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="trade">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* LEFT: trade panel */}
           <div className="lg:col-span-2 space-y-6">
@@ -424,8 +432,124 @@ const StockInvestor = () => {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+          </TabsContent>
 
+          <TabsContent value="leaderboard">
+            <div className="glass-card p-5 sm:p-6">
+              <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
+                <div className="flex items-center gap-2">
+                  <Crown className="w-5 h-5 text-amber-500" />
+                  <h3 className="text-xl font-semibold">Top Traders</h3>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => setLeaderKind("coins")}
+                    className={`px-3 h-9 rounded-lg text-sm font-medium transition ${leaderKind === "coins" ? "bg-primary text-primary-foreground" : "bg-secondary/60 text-muted-foreground hover:text-foreground"}`}>
+                    By Coins
+                  </button>
+                  <button onClick={() => setLeaderKind("profit")}
+                    className={`px-3 h-9 rounded-lg text-sm font-medium transition ${leaderKind === "profit" ? "bg-primary text-primary-foreground" : "bg-secondary/60 text-muted-foreground hover:text-foreground"}`}>
+                    By Net Profit
+                  </button>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-xs uppercase text-muted-foreground border-b border-border/40">
+                      <th className="text-left py-2 px-2 w-16">Rank</th>
+                      <th className="text-left py-2 px-2">Trader</th>
+                      <th className="text-right py-2 px-2">Coins</th>
+                      <th className="text-right py-2 px-2">Net Profit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leaderboard.length === 0 ? (
+                      <tr><td colSpan={4} className="text-center py-10 text-muted-foreground">No traders yet — be the first!</td></tr>
+                    ) : leaderboard.map(row => {
+                      const isMe = row.user_id === user?.id;
+                      const medal = row.rank === 1 ? "🥇" : row.rank === 2 ? "🥈" : row.rank === 3 ? "🥉" : null;
+                      return (
+                        <tr key={row.user_id} className={`border-b border-border/20 ${isMe ? "bg-primary/10" : "hover:bg-secondary/30"}`}>
+                          <td className="py-3 px-2 font-mono font-bold">
+                            <span className="inline-flex items-center gap-1">
+                              {medal || `#${row.rank}`}
+                            </span>
+                          </td>
+                          <td className="py-3 px-2 font-medium">
+                            {row.username}{isMe && <span className="ml-2 text-xs text-primary font-semibold">(you)</span>}
+                          </td>
+                          <td className="py-3 px-2 text-right font-mono text-amber-500">{Math.floor(Number(row.coins))}</td>
+                          <td className={`py-3 px-2 text-right font-mono ${Number(row.net_profit) >= 0 ? "text-green-500" : "text-red-500"}`}>
+                            {Number(row.net_profit) >= 0 ? "+" : ""}{Number(row.net_profit).toFixed(2)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-xs text-muted-foreground mt-4 flex items-center gap-1.5">
+                <Medal className="w-3.5 h-3.5" /> Net Profit = realized profit/loss from completed sells. Trade smarter to climb the ranks.
+              </p>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="referral">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="glass-card p-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <h3 className="font-semibold">Your Referral Code</h3>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Share your code. Friends get <span className="text-amber-500 font-semibold">+25 coins</span>, and you earn{" "}
+                  <span className="text-green-500 font-semibold">+50 coins</span> for every signup that uses it.
+                </p>
+                <div className="flex items-center gap-2 p-4 rounded-xl bg-secondary/50 border border-border/40 mb-3">
+                  <code className="flex-1 font-mono text-2xl font-bold tracking-widest text-primary select-all">
+                    {profile?.referral_code || "—"}
+                  </code>
+                  <button onClick={copyCode}
+                    className="h-10 px-3 rounded-lg bg-secondary border border-border/50 hover:bg-secondary/80 flex items-center gap-1.5 text-sm font-medium">
+                    <Copy className="w-4 h-4" /> Copy
+                  </button>
+                </div>
+                <button onClick={shareCode}
+                  className="w-full h-11 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 flex items-center justify-center gap-2">
+                  <Share2 className="w-4 h-4" /> Share invite
+                </button>
+              </div>
+
+              <div className="glass-card p-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <Users className="w-4 h-4 text-primary" />
+                  <h3 className="font-semibold">Got a code?</h3>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Enter a friend's referral code to claim <span className="text-amber-500 font-semibold">+25 bonus coins</span>. One-time use.
+                </p>
+                {profile?.referred_by ? (
+                  <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/30 text-sm text-green-600 dark:text-green-400">
+                    ✓ You've already redeemed a referral. Thanks for joining through a friend!
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <input value={refCode} onChange={e => setRefCode(e.target.value.toUpperCase())}
+                      placeholder="ENTER CODE"
+                      maxLength={12}
+                      className="w-full h-11 px-3 rounded-lg bg-secondary/50 border border-border/50 font-mono tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-primary/40" />
+                    <button onClick={redeemReferral} disabled={!refCode.trim()}
+                      className="w-full h-11 rounded-lg bg-amber-500 text-white font-semibold hover:bg-amber-600 disabled:opacity-60">
+                      Redeem code
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       <Footer />
     </div>
   );
