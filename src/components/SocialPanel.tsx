@@ -141,7 +141,7 @@ export function ProfileTab() {
   const { profile, refreshProfile } = useAuth();
   const [newName, setNewName] = useState("");
   const [busy, setBusy] = useState(false);
-  const remaining = 5 - (((profile as unknown) as { username_changes?: number })?.username_changes ?? 0);
+  const remaining = 5 - (profile?.username_changes ?? 0);
 
   const change = async () => {
     if (!newName.trim()) return;
