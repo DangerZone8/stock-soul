@@ -482,7 +482,10 @@ const StockInvestor = () => {
                             </span>
                           </td>
                           <td className="py-3 px-2 font-medium">
-                            {row.username}{isMe && <span className="ml-2 text-xs text-primary font-semibold">(you)</span>}
+                            <button onClick={() => !isMe && setOpenUser({ id: row.user_id, name: row.username })}
+                              className={`text-left hover:text-primary transition ${isMe ? "" : "cursor-pointer"}`}>
+                              {row.username}{isMe && <span className="ml-2 text-xs text-primary font-semibold">(you)</span>}
+                            </button>
                           </td>
                           <td className="py-3 px-2 text-right font-mono text-amber-500">{Number(row.coins).toFixed(2)}</td>
                           <td className={`py-3 px-2 text-right font-mono ${Number(row.net_profit) >= 0 ? "text-green-500" : "text-red-500"}`}>
@@ -553,8 +556,23 @@ const StockInvestor = () => {
               </div>
             </div>
           </TabsContent>
+
+          <TabsContent value="friends">
+            <FriendsTab onOpenUser={(id, name) => setOpenUser({ id, name })} />
+          </TabsContent>
+
+          <TabsContent value="profile">
+            <ProfileTab />
+          </TabsContent>
         </Tabs>
       </div>
+
+      <UserDialog
+        userId={openUser?.id ?? null}
+        username={openUser?.name ?? ""}
+        open={!!openUser}
+        onClose={() => setOpenUser(null)}
+      />
 
       <Footer />
     </div>
