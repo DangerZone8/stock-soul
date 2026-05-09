@@ -56,7 +56,7 @@ export function Navbar() {
           {user && profile && (
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-sm font-mono font-semibold">
               <Coins className="w-4 h-4" />
-              {Math.floor(profile.coins)}
+              {Number(profile.coins).toFixed(2)}
             </div>
           )}
           {user ? (
@@ -74,7 +74,7 @@ export function Navbar() {
           {user && profile && (
             <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-mono font-semibold">
               <Coins className="w-3.5 h-3.5" />
-              {Math.floor(profile.coins)}
+              {Number(profile.coins).toFixed(2)}
             </div>
           )}
           <ThemeToggle />

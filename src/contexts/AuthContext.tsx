@@ -13,6 +13,7 @@ interface Profile {
   net_profit: number;
   coins: number;
   last_reward_date: string | null;
+  username_changes?: number;
 }
 
 interface AuthCtx {

@@ -14,6 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
+      direct_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          recipient_id: string
+          sender_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          recipient_id: string
+          sender_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          recipient_id?: string
+          sender_id?: string
+        }
+        Relationships: []
+      }
+      follows: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+        }
+        Relationships: []
+      }
+      friendships: {
+        Row: {
+          addressee_id: string
+          created_at: string
+          id: string
+          requester_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          addressee_id: string
+          created_at?: string
+          id?: string
+          requester_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          addressee_id?: string
+          created_at?: string
+          id?: string
+          requester_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       holdings: {
         Row: {
           avg_buy_price: number
@@ -60,6 +129,7 @@ export type Database = {
           referred_by: string | null
           updated_at: string
           username: string | null
+          username_changes: number
         }
         Insert: {
           coins?: number
@@ -73,6 +143,7 @@ export type Database = {
           referred_by?: string | null
           updated_at?: string
           username?: string | null
+          username_changes?: number
         }
         Update: {
           coins?: number
@@ -86,6 +157,7 @@ export type Database = {
           referred_by?: string | null
           updated_at?: string
           username?: string | null
+          username_changes?: number
         }
         Relationships: []
       }
@@ -163,6 +235,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_friend_request: {
+        Args: { p_requester: string }
+        Returns: {
+          message: string
+          success: boolean
+        }[]
+      }
+      change_username: {
+        Args: { p_new: string }
+        Returns: {
+          message: string
+          remaining: number
+          success: boolean
+          username: string
+        }[]
+      }
       claim_daily_reward: {
         Args: never
         Returns: {
@@ -185,6 +273,27 @@ export type Database = {
           success: boolean
         }[]
       }
+      get_friends_leaderboard: {
+        Args: { p_kind?: string }
+        Returns: {
+          coins: number
+          net_profit: number
+          rank: number
+          user_id: string
+          username: string
+        }[]
+      }
+      get_friendships: {
+        Args: never
+        Returns: {
+          coins: number
+          is_incoming: boolean
+          net_profit: number
+          other_id: string
+          status: string
+          username: string
+        }[]
+      }
       get_leaderboard: {
         Args: { p_kind?: string; p_limit?: number }
         Returns: {
@@ -195,9 +304,53 @@ export type Database = {
           username: string
         }[]
       }
+      get_user_public: {
+        Args: { p_user: string }
+        Returns: {
+          coins: number
+          created_at: string
+          id: string
+          net_profit: number
+          username: string
+        }[]
+      }
+      get_user_recent_trades: {
+        Args: { p_limit?: number; p_user: string }
+        Returns: {
+          created_at: string
+          price: number
+          quantity: number
+          symbol: string
+          type: string
+        }[]
+      }
       redeem_referral: {
         Args: { p_code: string }
         Returns: {
+          message: string
+          success: boolean
+        }[]
+      }
+      search_users: {
+        Args: { p_limit?: number; p_q: string }
+        Returns: {
+          coins: number
+          id: string
+          net_profit: number
+          username: string
+        }[]
+      }
+      send_friend_request: {
+        Args: { p_addressee: string }
+        Returns: {
+          message: string
+          success: boolean
+        }[]
+      }
+      toggle_follow: {
+        Args: { p_target: string }
+        Returns: {
+          following: boolean
           message: string
           success: boolean
         }[]
