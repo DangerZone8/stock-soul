@@ -11,6 +11,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { FriendsTab, ProfileTab, UserDialog } from "@/components/SocialPanel";
+import { UserCircle } from "lucide-react";
 
 const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 const REFRESH_MS = 20000;
@@ -70,6 +72,7 @@ const StockInvestor = () => {
   const [leaderboard, setLeaderboard] = useState<LeaderRow[]>([]);
   const [refCode, setRefCode] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [openUser, setOpenUser] = useState<{ id: string; name: string } | null>(null);
 
   const loadLeaderboard = useCallback(async (kind: "coins" | "profit") => {
     const { data } = await supabase.rpc("get_leaderboard", { p_kind: kind, p_limit: 25 });
@@ -302,10 +305,12 @@ const StockInvestor = () => {
         </motion.div>
 
         <Tabs defaultValue="trade" className="w-full">
-          <TabsList className="mb-6 bg-secondary/40 border border-border/30">
+          <TabsList className="mb-6 bg-secondary/40 border border-border/30 flex-wrap h-auto">
             <TabsTrigger value="trade" className="gap-1.5"><Briefcase className="w-3.5 h-3.5" />Trade</TabsTrigger>
             <TabsTrigger value="leaderboard" className="gap-1.5"><Trophy className="w-3.5 h-3.5" />Leaderboard</TabsTrigger>
-            <TabsTrigger value="referral" className="gap-1.5"><Users className="w-3.5 h-3.5" />Referral</TabsTrigger>
+            <TabsTrigger value="friends" className="gap-1.5"><Users className="w-3.5 h-3.5" />Friends</TabsTrigger>
+            <TabsTrigger value="referral" className="gap-1.5"><Sparkles className="w-3.5 h-3.5" />Referral</TabsTrigger>
+            <TabsTrigger value="profile" className="gap-1.5"><UserCircle className="w-3.5 h-3.5" />Profile</TabsTrigger>
           </TabsList>
 
           <TabsContent value="trade">
