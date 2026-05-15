@@ -15,7 +15,7 @@ import { FriendsTab, ProfileTab, UserDialog } from "@/components/SocialPanel";
 import { UserCircle } from "lucide-react";
 
 const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-const REFRESH_MS = 20000;
+const REFRESH_MS = 1000;
 
 const POPULAR = [
   { label: "NVIDIA", symbol: "NVDA" },
