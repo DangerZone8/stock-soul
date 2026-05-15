@@ -331,7 +331,7 @@ const LiveMarket = () => {
           <h1 className="text-3xl sm:text-5xl font-semibold tracking-tighter">
             Live <span className="text-primary">Market</span>
           </h1>
-          <p className="text-muted-foreground mt-2">Real-time prices, charts & Kaia's smart tips. Auto-updates every 20s.</p>
+          <p className="text-muted-foreground mt-2">Real-time prices, charts & Kaia's smart tips. Auto-updates every second.</p>
         </motion.div>
 
         {/* Split layout: chart left, Kaia right */}
