@@ -453,7 +453,12 @@ serve(async (req) => {
       default: DEFAULT_PROMPT,
       savage: SAVAGE_PROMPT,
     };
-    const systemMessage = promptMap[mode] + realTimeContext + fileContext;
+    const contextNote = context === "investor"
+      ? "\n\nCONTEXT: User is on the Stock Investor page — a GAMIFIED VIRTUAL TRADING SIMULATOR. Always refer to balance as 'credits' (never 'money', 'dollars', 'rupees', or 'real cash'). Frame buys/sells as 'spending credits' / 'earning credits'. Remind users this is for fun & learning. Still give decisive Strong Buy / Buy / Hold / Sell / Strong Sell calls based on real live data."
+      : context === "live"
+      ? "\n\nCONTEXT: User is on the Live Market page — speak normally about buy/sell with real prices."
+      : "";
+    const systemMessage = promptMap[mode] + realTimeContext + fileContext + contextNote;
 
     // Build messages for API - use vision if image attached
     const apiMessages: any[] = [{ role: "system", content: systemMessage }];
