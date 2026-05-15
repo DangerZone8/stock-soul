@@ -563,6 +563,16 @@ const StockInvestor = () => {
             <FriendsTab onOpenUser={(id, name) => setOpenUser({ id, name })} />
           </TabsContent>
 
+          <TabsContent value="kaia">
+            <div className="glass-card p-3 sm:p-4">
+              <div className="flex items-center gap-2 mb-3 px-2">
+                <Heart className="w-4 h-4 text-primary" />
+                <h3 className="font-semibold">Ask Kaia (Investor mode — credits)</h3>
+              </div>
+              <DreamGirlChat context="investor" />
+            </div>
+          </TabsContent>
+
           <TabsContent value="profile">
             <ProfileTab />
           </TabsContent>
