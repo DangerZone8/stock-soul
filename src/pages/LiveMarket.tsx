@@ -55,9 +55,9 @@ interface KaiaTip {
   headlines?: string[];
 }
 
-const LIVE_REFRESH_MS = 20000;
+const LIVE_REFRESH_MS = 1000;
 const TIP_REFRESH_MS = 90000;
-const MAX_LIVE_POINTS = 240;
+const MAX_LIVE_POINTS = 600;
 
 const buildLiveChartData = (incoming: ChartData, previous?: ChartData | null): ChartData => {
   const base = previous?.symbol === incoming.symbol ? previous : incoming;
