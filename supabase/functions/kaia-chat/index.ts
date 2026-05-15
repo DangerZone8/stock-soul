@@ -375,7 +375,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { messages: rawMessages, mode, file } = body;
+    const { messages: rawMessages, mode, file, context } = body;
 
     const validModes = ["flirty", "default", "savage"];
     if (!validModes.includes(mode)) {
