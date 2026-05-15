@@ -27,7 +27,7 @@ const INITIAL_MESSAGES: Message[] = [
   },
 ];
 
-export function DreamGirlChat() {
+export function DreamGirlChat({ context }: { context?: "investor" | "live" } = {}) {
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
