@@ -4,7 +4,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index.tsx";
-import Achievements from "./pages/Achievements.tsx";
 import DreamGirl from "./pages/DreamGirl.tsx";
 import LiveMarket from "./pages/LiveMarket.tsx";
 import StockInvestor from "./pages/StockInvestor.tsx";
@@ -22,7 +21,6 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/achievements" element={<Achievements />} />
             <Route path="/dream-girl" element={<DreamGirl />} />
             <Route path="/live" element={<LiveMarket />} />
             <Route path="/investor" element={<StockInvestor />} />
