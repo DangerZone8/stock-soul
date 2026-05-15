@@ -308,6 +308,7 @@ const StockInvestor = () => {
         <Tabs defaultValue="trade" className="w-full">
           <TabsList className="mb-6 bg-secondary/40 border border-border/30 flex-wrap h-auto">
             <TabsTrigger value="trade" className="gap-1.5"><Briefcase className="w-3.5 h-3.5" />Trade</TabsTrigger>
+            <TabsTrigger value="kaia" className="gap-1.5"><Heart className="w-3.5 h-3.5" />Kaia</TabsTrigger>
             <TabsTrigger value="leaderboard" className="gap-1.5"><Trophy className="w-3.5 h-3.5" />Leaderboard</TabsTrigger>
             <TabsTrigger value="friends" className="gap-1.5"><Users className="w-3.5 h-3.5" />Friends</TabsTrigger>
             <TabsTrigger value="referral" className="gap-1.5"><Sparkles className="w-3.5 h-3.5" />Referral</TabsTrigger>
