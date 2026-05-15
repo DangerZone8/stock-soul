@@ -55,9 +55,9 @@ interface KaiaTip {
   headlines?: string[];
 }
 
-const LIVE_REFRESH_MS = 20000;
+const LIVE_REFRESH_MS = 1000;
 const TIP_REFRESH_MS = 90000;
-const MAX_LIVE_POINTS = 240;
+const MAX_LIVE_POINTS = 600;
 
 const buildLiveChartData = (incoming: ChartData, previous?: ChartData | null): ChartData => {
   const base = previous?.symbol === incoming.symbol ? previous : incoming;
@@ -331,7 +331,7 @@ const LiveMarket = () => {
           <h1 className="text-3xl sm:text-5xl font-semibold tracking-tighter">
             Live <span className="text-primary">Market</span>
           </h1>
-          <p className="text-muted-foreground mt-2">Real-time prices, charts & Kaia's smart tips. Auto-updates every 20s.</p>
+          <p className="text-muted-foreground mt-2">Real-time prices, charts & Kaia's smart tips. Auto-updates every second.</p>
         </motion.div>
 
         {/* Split layout: chart left, Kaia right */}

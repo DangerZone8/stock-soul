@@ -27,7 +27,7 @@ const INITIAL_MESSAGES: Message[] = [
   },
 ];
 
-export function DreamGirlChat() {
+export function DreamGirlChat({ context }: { context?: "investor" | "live" } = {}) {
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -117,7 +117,7 @@ export function DreamGirlChat() {
     try {
       const chatUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/kaia-chat`;
 
-      const body: any = { messages: apiMessages, mode };
+      const body: any = { messages: apiMessages, mode, context };
       if (fileInfo) {
         body.file = {
           name: fileInfo.name,

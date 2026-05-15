@@ -7,6 +7,7 @@ import { QuickGuide } from "@/components/QuickGuide";
 import { CandlestickBackground } from "@/components/CandlestickBackground";
 import { Footer } from "@/components/Footer";
 import { DevMode } from "@/components/DevMode";
+import { HomeUserPanel } from "@/components/HomeUserPanel";
 
 const Index = () => {
   return (
@@ -15,6 +16,7 @@ const Index = () => {
       <TickerTape />
       <Navbar />
       <HeroSection />
+      <HomeUserPanel />
       <QuickGuide />
       <TrackRecord />
       <MarketMood />

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, TrendingUp, TrendingDown, RefreshCw, Coins, Briefcase, Trophy, Sparkles, Plus, Minus, Users, Copy, Share2, Crown, Medal } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, RefreshCw, Coins, Briefcase, Trophy, Sparkles, Plus, Minus, Users, Copy, Share2, Crown, Medal, Heart } from "lucide-react";
 import { Line } from "react-chartjs-2";
 import "chart.js/auto";
 import { Navbar } from "@/components/Navbar";
@@ -12,10 +12,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { FriendsTab, ProfileTab, UserDialog } from "@/components/SocialPanel";
+import { DreamGirlChat } from "@/components/DreamGirlChat";
 import { UserCircle } from "lucide-react";
 
 const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-const REFRESH_MS = 20000;
+const REFRESH_MS = 1000;
 
 const POPULAR = [
   { label: "NVIDIA", symbol: "NVDA" },
@@ -307,6 +308,7 @@ const StockInvestor = () => {
         <Tabs defaultValue="trade" className="w-full">
           <TabsList className="mb-6 bg-secondary/40 border border-border/30 flex-wrap h-auto">
             <TabsTrigger value="trade" className="gap-1.5"><Briefcase className="w-3.5 h-3.5" />Trade</TabsTrigger>
+            <TabsTrigger value="kaia" className="gap-1.5"><Heart className="w-3.5 h-3.5" />Kaia</TabsTrigger>
             <TabsTrigger value="leaderboard" className="gap-1.5"><Trophy className="w-3.5 h-3.5" />Leaderboard</TabsTrigger>
             <TabsTrigger value="friends" className="gap-1.5"><Users className="w-3.5 h-3.5" />Friends</TabsTrigger>
             <TabsTrigger value="referral" className="gap-1.5"><Sparkles className="w-3.5 h-3.5" />Referral</TabsTrigger>
@@ -559,6 +561,16 @@ const StockInvestor = () => {
 
           <TabsContent value="friends">
             <FriendsTab onOpenUser={(id, name) => setOpenUser({ id, name })} />
+          </TabsContent>
+
+          <TabsContent value="kaia">
+            <div className="glass-card p-3 sm:p-4">
+              <div className="flex items-center gap-2 mb-3 px-2">
+                <Heart className="w-4 h-4 text-primary" />
+                <h3 className="font-semibold">Ask Kaia (Investor mode — credits)</h3>
+              </div>
+              <DreamGirlChat context="investor" />
+            </div>
           </TabsContent>
 
           <TabsContent value="profile">
