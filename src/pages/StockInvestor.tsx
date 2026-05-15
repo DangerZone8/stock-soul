@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, TrendingUp, TrendingDown, RefreshCw, Coins, Briefcase, Trophy, Sparkles, Plus, Minus, Users, Copy, Share2, Crown, Medal } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, RefreshCw, Coins, Briefcase, Trophy, Sparkles, Plus, Minus, Users, Copy, Share2, Crown, Medal, Heart } from "lucide-react";
 import { Line } from "react-chartjs-2";
 import "chart.js/auto";
 import { Navbar } from "@/components/Navbar";
