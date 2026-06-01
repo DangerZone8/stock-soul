@@ -23,9 +23,11 @@ const INITIAL_MESSAGES: Message[] = [
   {
     id: "1",
     role: "assistant",
-    content: "Hey there 🔥 I'm Kaia, Rudra's Dream AI Girl. What's the move today?",
+    content: "Hey there 🔥 I'm Kaia — your Stock Empire AI sidekick. What's the move today?",
   },
 ];
+
+const storageKey = (context?: string) => `kaia-chat-${context || "default"}`;
 
 export function DreamGirlChat({ context }: { context?: "investor" | "live" } = {}) {
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
