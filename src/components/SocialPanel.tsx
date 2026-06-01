@@ -12,6 +12,7 @@ interface TradeRow { symbol: string; type: string; quantity: number; price: numb
 interface DM { id: string; sender_id: string; recipient_id: string; body: string; created_at: string; }
 
 export function FriendsTab({ onOpenUser }: { onOpenUser: (id: string, username: string) => void }) {
+  const { user } = useAuth();
   const [q, setQ] = useState("");
   const [results, setResults] = useState<UserRow[]>([]);
   const [friends, setFriends] = useState<FriendRow[]>([]);
@@ -30,6 +31,19 @@ export function FriendsTab({ onOpenUser }: { onOpenUser: (id: string, username: 
 
   useEffect(() => { loadFriends(); }, [loadFriends]);
   useEffect(() => { loadFriendBoard(leaderKind); }, [leaderKind, loadFriendBoard]);
+
+  // Realtime: refresh friend list when someone sends/accepts a request
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase.channel(`friendships-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "friendships" }, () => {
+        loadFriends();
+        loadFriendBoard(leaderKind);
+      }).subscribe();
+    // Safety poll every 8s in case realtime drops
+    const poll = setInterval(loadFriends, 8000);
+    return () => { supabase.removeChannel(ch); clearInterval(poll); };
+  }, [user, loadFriends, loadFriendBoard, leaderKind]);
 
   useEffect(() => {
     if (!q.trim()) { setResults([]); return; }
