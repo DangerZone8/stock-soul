@@ -29,7 +29,7 @@ const INITIAL_MESSAGES: Message[] = [
 
 const storageKey = (context?: string) => `kaia-chat-${context || "default"}`;
 
-export function DreamGirlChat({ context }: { context?: "investor" | "live" } = {}) {
+export function DreamGirlChat({ context, portfolio }: { context?: "investor" | "live"; portfolio?: string } = {}) {
   // Kaia shares memory across all tabs/contexts via a single storage key
   const [messages, setMessages] = useState<Message[]>(() => {
     if (typeof window === "undefined") return INITIAL_MESSAGES;
