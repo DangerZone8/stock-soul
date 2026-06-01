@@ -146,7 +146,7 @@ export function DreamGirlChat({ context, portfolio }: { context?: "investor" | "
     try {
       const chatUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/kaia-chat`;
 
-      const body: any = { messages: apiMessages, mode, context };
+      const body: any = { messages: apiMessages, mode, context, portfolio };
       if (fileInfo) {
         body.file = {
           name: fileInfo.name,
