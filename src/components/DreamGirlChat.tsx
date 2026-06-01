@@ -30,7 +30,18 @@ const INITIAL_MESSAGES: Message[] = [
 const storageKey = (context?: string) => `kaia-chat-${context || "default"}`;
 
 export function DreamGirlChat({ context }: { context?: "investor" | "live" } = {}) {
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
+  // Kaia shares memory across all tabs/contexts via a single storage key
+  const [messages, setMessages] = useState<Message[]>(() => {
+    if (typeof window === "undefined") return INITIAL_MESSAGES;
+    try {
+      const stored = localStorage.getItem(storageKey("global"));
+      if (stored) {
+        const parsed = JSON.parse(stored) as Message[];
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch { /* ignore */ }
+    return INITIAL_MESSAGES;
+  });
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [mode, setMode] = useState<KaiaMode>(null);
@@ -38,6 +49,22 @@ export function DreamGirlChat({ context }: { context?: "investor" | "live" } = {
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Persist messages globally so Kaia remembers across tabs/pages
+  useEffect(() => {
+    try { localStorage.setItem(storageKey("global"), JSON.stringify(messages.slice(-80))); } catch { /* ignore */ }
+  }, [messages]);
+
+  // Live sync messages across tabs in the same browser
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === storageKey("global") && e.newValue) {
+        try { setMessages(JSON.parse(e.newValue)); } catch { /* ignore */ }
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
