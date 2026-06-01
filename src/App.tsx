@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { DomainChangePopup } from "@/components/DomainChangePopup";
 import Index from "./pages/Index.tsx";
 import DreamGirl from "./pages/DreamGirl.tsx";
 import LiveMarket from "./pages/LiveMarket.tsx";
