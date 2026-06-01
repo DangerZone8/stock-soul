@@ -272,7 +272,7 @@ const LiveMarket = () => {
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    animation: { duration: 800, easing: "easeOutQuart" as const },
+    animation: false as const,
     interaction: { intersect: false, mode: "index" as const },
     plugins: {
       legend: { display: false },
