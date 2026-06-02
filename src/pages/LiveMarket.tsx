@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { Search, TrendingUp, TrendingDown, RefreshCw, Clock, DollarSign, BarChart3, Volume2, Sparkles, Heart, Newspaper } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, RefreshCw, Clock, DollarSign, BarChart3, Volume2, Sparkles, Newspaper } from "lucide-react";
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -15,7 +15,7 @@ import {
 import { Navbar } from "@/components/Navbar";
 import { CandlestickBackground } from "@/components/CandlestickBackground";
 import { Footer } from "@/components/Footer";
-import { DreamGirlChat } from "@/components/DreamGirlChat";
+import { FloatingKaia } from "@/components/FloatingKaia";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler);
 
@@ -333,11 +333,10 @@ const LiveMarket = () => {
           </h1>
           <p className="text-muted-foreground mt-2">Real-time prices, charts & Kaia's smart tips. Auto-updates every second.</p>
         </motion.div>
-
-        {/* Split layout: chart left, Kaia right */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main content (full width — Kaia is floating) */}
+        <div className="space-y-6">
           {/* LEFT: Search + Chart + Tip */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="space-y-6">
             {/* Search */}
             <motion.form
               initial={{ opacity: 0, y: 10 }}
@@ -428,7 +427,7 @@ const LiveMarket = () => {
                 </div>
               )}
               {chartData && !error && (
-                <div className="h-[300px] sm:h-[400px]">
+                <div className="h-[320px] sm:h-[440px]">
                   <Line data={chartConfig} options={chartOptions} />
                 </div>
               )}
@@ -507,23 +506,11 @@ const LiveMarket = () => {
               </motion.div>
             )}
           </div>
-
-          {/* RIGHT: Kaia Chat */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="lg:col-span-1"
-          >
-            <div className="lg:sticky lg:top-20">
-              <div className="flex items-center gap-2 mb-3">
-                <Heart className="w-4 h-4 text-primary" />
-                <h2 className="font-semibold text-sm">Chat with Kaia</h2>
-              </div>
-              <DreamGirlChat />
-            </div>
-          </motion.div>
         </div>
       </div>
+
+      <FloatingKaia context="live" />
+
 
       <Footer />
     </div>
