@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { Search, TrendingUp, TrendingDown, RefreshCw, Clock, DollarSign, BarChart3, Volume2, Sparkles, Heart, Newspaper } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, RefreshCw, Clock, DollarSign, BarChart3, Volume2, Sparkles, Newspaper } from "lucide-react";
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
