@@ -15,7 +15,7 @@ import {
 import { Navbar } from "@/components/Navbar";
 import { CandlestickBackground } from "@/components/CandlestickBackground";
 import { Footer } from "@/components/Footer";
-import { DreamGirlChat } from "@/components/DreamGirlChat";
+import { FloatingKaia } from "@/components/FloatingKaia";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler);
 
