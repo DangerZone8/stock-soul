@@ -1,12 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, TrendingUp, TrendingDown, RefreshCw, Coins, Globe, Sparkles, Plus, Minus, Trophy } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, RefreshCw, Coins, Globe, Sparkles, Plus, Minus, Trophy, ArrowRight } from "lucide-react";
 import { Line } from "react-chartjs-2";
 import "chart.js/auto";
 import { Navbar } from "@/components/Navbar";
 import { CandlestickBackground } from "@/components/CandlestickBackground";
 import { Footer } from "@/components/Footer";
+import { FloatingKaia } from "@/components/FloatingKaia";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -14,15 +15,23 @@ import { toast } from "@/hooks/use-toast";
 const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 const REFRESH_MS = 1000;
 
+// All commonly tradeable currencies on Yahoo (=X pairs)
+const CURRENCIES = [
+  "USD", "EUR", "GBP", "JPY", "INR", "CAD", "AUD", "CHF",
+  "NZD", "CNY", "HKD", "SGD", "SEK", "NOK", "DKK", "ZAR",
+  "MXN", "BRL", "TRY", "KRW", "AED", "SAR", "THB", "IDR",
+];
+
 const POPULAR = [
   { label: "EUR/USD", symbol: "EURUSD=X" },
   { label: "GBP/USD", symbol: "GBPUSD=X" },
   { label: "USD/JPY", symbol: "USDJPY=X" },
   { label: "USD/INR", symbol: "USDINR=X" },
-  { label: "AUD/USD", symbol: "AUDUSD=X" },
-  { label: "USD/CAD", symbol: "USDCAD=X" },
-  { label: "USD/CHF", symbol: "USDCHF=X" },
-  { label: "NZD/USD", symbol: "NZDUSD=X" },
+  { label: "EUR/INR", symbol: "EURINR=X" },
+  { label: "GBP/INR", symbol: "GBPINR=X" },
+  { label: "EUR/GBP", symbol: "EURGBP=X" },
+  { label: "EUR/JPY", symbol: "EURJPY=X" },
+  { label: "AUD/CAD", symbol: "AUDCAD=X" },
 ];
 
 interface Holding {
@@ -34,10 +43,33 @@ interface Quote {
 }
 
 const isForex = (s: string) => /=X$/i.test(s);
+const formatPairLabel = (sym: string) => {
+  const m = sym.toUpperCase().match(/^([A-Z]{3})([A-Z]{3})=X$/);
+  return m ? `${m[1]}/${m[2]}` : sym;
+};
+
+// Parse arbitrary user input → canonical "XXXYYY=X" Yahoo ticker
+const parsePairInput = (raw: string): string | null => {
+  if (!raw) return null;
+  const upper = raw.toUpperCase();
+  // Already a Yahoo FX ticker
+  let m = upper.match(/([A-Z]{3})([A-Z]{3})=X/);
+  if (m) return `${m[1]}${m[2]}=X`;
+  // "EUR to INR", "EUR-INR", "EUR/INR", "EUR INR"
+  m = upper.match(/\b([A-Z]{3})\b\s*(?:\/|-|TO|VS|\s)+\s*\b([A-Z]{3})\b/);
+  if (m) return `${m[1]}${m[2]}=X`;
+  // "EURINR" 6 letters
+  const stripped = upper.replace(/[^A-Z]/g, "");
+  m = stripped.match(/^([A-Z]{3})([A-Z]{3})$/);
+  if (m) return `${m[1]}${m[2]}=X`;
+  return null;
+};
 
 const ForexInvestor = () => {
   const { user, profile, refreshProfile } = useAuth();
   const [query, setQuery] = useState("");
+  const [base, setBase] = useState("EUR");
+  const [quoteCcy, setQuoteCcy] = useState("USD");
   const [activeTicker, setActiveTicker] = useState("EURUSD=X");
   const [quote, setQuote] = useState<Quote | null>(null);
   const [holdings, setHoldings] = useState<Holding[]>([]);
@@ -47,6 +79,12 @@ const ForexInvestor = () => {
   const [searching, setSearching] = useState(false);
   const [flash, setFlash] = useState<{ kind: "profit" | "loss"; text: string } | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Keep base/quote selectors in sync with the active ticker
+  useEffect(() => {
+    const m = activeTicker.toUpperCase().match(/^([A-Z]{3})([A-Z]{3})=X$/);
+    if (m) { setBase(m[1]); setQuoteCcy(m[2]); }
+  }, [activeTicker]);
 
   const fetchQuote = useCallback(async (symbol: string) => {
     try {
@@ -91,21 +129,24 @@ const ForexInvestor = () => {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [activeTicker, fetchQuote, fetchLivePricesForHoldings, holdings]);
 
+  const applyPair = (b: string, q: string) => {
+    if (!b || !q || b === q) { toast({ title: "Pick two different currencies", variant: "destructive" }); return; }
+    setActiveTicker(`${b}${q}=X`);
+  };
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     const q = query.trim();
     if (!q) return;
-    // Normalize input like "EURUSD" or "EUR/USD" → "EURUSD=X"
-    const cleaned = q.toUpperCase().replace(/[^A-Z=]/g, "");
-    if (/^[A-Z]{6}$/.test(cleaned)) { setActiveTicker(cleaned + "=X"); setQuery(""); return; }
-    if (/^[A-Z]{6}=X$/.test(cleaned)) { setActiveTicker(cleaned); setQuery(""); return; }
+    const parsed = parsePairInput(q);
+    if (parsed) { setActiveTicker(parsed); setQuery(""); return; }
     setSearching(true);
     try {
       const r = await fetch(`https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/stock-chart?q=${encodeURIComponent(q)}`);
       const d = await r.json();
-      const first = d?.quotes?.find((x: any) => isForex(x.symbol))?.symbol || d?.quotes?.[0]?.symbol;
-      if (first) { setActiveTicker(first); setQuery(""); }
-      else toast({ title: "No match", description: `No forex pair found for "${q}"`, variant: "destructive" });
+      const first = d?.quotes?.find((x: { symbol: string }) => isForex(x.symbol))?.symbol || d?.quotes?.[0]?.symbol;
+      if (first && isForex(first)) { setActiveTicker(first); setQuery(""); }
+      else toast({ title: "No FX pair found", description: `Try "EUR/INR", "GBPJPY" or use the dropdowns.`, variant: "destructive" });
     } finally { setSearching(false); }
   };
 
@@ -140,6 +181,7 @@ const ForexInvestor = () => {
   const change = price - prevClose;
   const pct = prevClose > 0 ? (change / prevClose) * 100 : 0;
   const isUp = change >= 0;
+  const pairLabel = formatPairLabel(activeTicker);
 
   const portfolioValue = holdings.reduce((s, h) => s + (livePrices[h.symbol]?.price ?? h.avg_buy_price) * h.quantity, 0);
   const totalCost = holdings.reduce((s, h) => s + h.avg_buy_price * h.quantity, 0);
@@ -163,6 +205,21 @@ const ForexInvestor = () => {
       y: { grid: { color: "rgba(150,150,150,0.1)" }, ticks: { color: "rgba(150,150,150,0.6)", font: { size: 10 } } },
     },
   };
+
+  const portfolioCtx = useMemo(() => {
+    if (!user) return undefined;
+    return (
+      `Username: ${profile?.username || "Trader"}\n` +
+      `Coins: ${Number(profile?.coins ?? 0).toFixed(2)}\n` +
+      `Active FX pair: ${pairLabel} (${activeTicker}) @ ${price.toFixed(5)}\n` +
+      `FX Holdings (${holdings.length}):\n` +
+      holdings.map(h => {
+        const live = livePrices[h.symbol]?.price;
+        const pnl = ((live ?? h.avg_buy_price) - h.avg_buy_price) * h.quantity;
+        return `- ${formatPairLabel(h.symbol)}: qty ${h.quantity}, avg ${h.avg_buy_price.toFixed(5)}, live ${live?.toFixed(5) ?? "?"}, P/L ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}`;
+      }).join("\n")
+    );
+  }, [user, profile, holdings, livePrices, activeTicker, pairLabel, price]);
 
   if (!user) {
     return (
@@ -211,7 +268,7 @@ const ForexInvestor = () => {
               <h1 className="text-3xl sm:text-5xl font-semibold tracking-tighter">
                 Forex <span className="text-primary">Investor</span>
               </h1>
-              <p className="text-muted-foreground mt-2">Trade EUR/USD, GBP/USD and more — live FX rates, virtual coins.</p>
+              <p className="text-muted-foreground mt-2">Trade any currency pair — USD, EUR, INR, JPY, CAD, GBP, AUD, CHF and more.</p>
             </div>
             <div className="flex gap-3 flex-wrap">
               <div className="glass-card px-4 py-2.5">
@@ -239,14 +296,51 @@ const ForexInvestor = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <form onSubmit={handleSearch} className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <input value={query} onChange={e => setQuery(e.target.value)}
-                placeholder="Search any FX pair (EURUSD, GBP/JPY, USDINR)"
-                className="w-full h-14 pl-12 pr-4 rounded-xl bg-secondary/50 border border-border/50 focus:outline-none focus:ring-2 focus:ring-primary/40" />
-              {searching && <RefreshCw className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />}
-            </form>
+            {/* Pair selector — dropdowns + search */}
+            <div className="glass-card p-4 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-muted-foreground">
+                <Globe className="w-3.5 h-3.5 text-primary" /> Pick any currency pair
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
+                <div className="flex-1">
+                  <label className="text-xs text-muted-foreground">Base</label>
+                  <select
+                    value={base}
+                    onChange={(e) => { const v = e.target.value; setBase(v); applyPair(v, quoteCcy); }}
+                    className="mt-1 w-full h-11 px-3 rounded-lg bg-secondary/50 border border-border/50 font-mono focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  >
+                    {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <ArrowRight className="hidden sm:block w-5 h-5 text-muted-foreground mb-3" />
+                <div className="flex-1">
+                  <label className="text-xs text-muted-foreground">Quote</label>
+                  <select
+                    value={quoteCcy}
+                    onChange={(e) => { const v = e.target.value; setQuoteCcy(v); applyPair(base, v); }}
+                    className="mt-1 w-full h-11 px-3 rounded-lg bg-secondary/50 border border-border/50 font-mono focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  >
+                    {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <button
+                  onClick={() => applyPair(base, quoteCcy)}
+                  className="h-11 px-4 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90"
+                >
+                  Load {base}/{quoteCcy}
+                </button>
+              </div>
 
+              <form onSubmit={handleSearch} className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <input value={query} onChange={e => setQuery(e.target.value)}
+                  placeholder='Or type a pair: "EUR to INR", "GBPJPY", "USD/CAD"…'
+                  className="w-full h-12 pl-12 pr-4 rounded-xl bg-secondary/40 border border-border/40 focus:outline-none focus:ring-2 focus:ring-primary/40" />
+                {searching && <RefreshCw className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />}
+              </form>
+            </div>
+
+            {/* Popular shortcuts */}
             <div className="flex flex-wrap gap-2">
               {POPULAR.map(t => (
                 <button key={t.symbol} onClick={() => setActiveTicker(t.symbol)}
@@ -260,12 +354,15 @@ const ForexInvestor = () => {
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-5">
                 <div className="flex items-end justify-between gap-4 mb-4">
                   <div>
-                    <div className="text-xs text-muted-foreground font-mono">{quote.symbol}</div>
+                    <div className="text-xs text-muted-foreground font-mono">{pairLabel} <span className="opacity-50">· {quote.symbol}</span></div>
                     <div className="text-3xl font-bold font-mono">{price.toFixed(5)}</div>
                     <div className={`text-sm flex items-center gap-1 mt-1 ${isUp ? "text-green-500" : "text-red-500"}`}>
                       {isUp ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                       {isUp ? "+" : ""}{change.toFixed(5)} ({pct.toFixed(2)}%)
                     </div>
+                  </div>
+                  <div className="text-xs text-muted-foreground text-right">
+                    1 {base} = <span className="font-mono text-foreground">{price.toFixed(5)}</span> {quoteCcy}
                   </div>
                 </div>
                 <div className="h-[220px] mb-4">
@@ -274,7 +371,7 @@ const ForexInvestor = () => {
 
                 <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
                   <div className="flex-1">
-                    <label className="text-xs text-muted-foreground">Units</label>
+                    <label className="text-xs text-muted-foreground">Units of {base}</label>
                     <div className="flex items-center gap-2 mt-1">
                       <button type="button" onClick={() => setQty(q => String(Math.max(1, Number(q) - 100)))} className="w-9 h-10 rounded-lg bg-secondary border border-border/50 flex items-center justify-center hover:bg-secondary/80"><Minus className="w-4 h-4" /></button>
                       <input type="number" step="any" min="0" value={qty} onChange={e => setQty(e.target.value)}
@@ -327,7 +424,7 @@ const ForexInvestor = () => {
                         onClick={() => setActiveTicker(h.symbol)}>
                         <div className="flex justify-between items-start mb-1">
                           <div>
-                            <div className="font-mono font-semibold text-sm">{h.symbol}</div>
+                            <div className="font-mono font-semibold text-sm">{formatPairLabel(h.symbol)}</div>
                             <div className="text-xs text-muted-foreground">Qty {h.quantity} · Avg {h.avg_buy_price.toFixed(5)}</div>
                           </div>
                           <div className="text-right">
@@ -356,6 +453,8 @@ const ForexInvestor = () => {
           </div>
         </div>
       </div>
+
+      <FloatingKaia context="investor" portfolio={portfolioCtx} />
 
       <Footer />
     </div>
