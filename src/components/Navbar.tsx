@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { TrendingUp, Menu, X, BarChart3, Coins, LogOut, LogIn, Briefcase } from "lucide-react";
+import { TrendingUp, Menu, X, BarChart3, Coins, LogOut, LogIn, Briefcase, Globe } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { label: "Home", path: "/", icon: TrendingUp },
   { label: "Live Market", path: "/live", icon: BarChart3 },
   { label: "Stock Investor", path: "/investor", icon: Briefcase },
+  { label: "Forex Investor", path: "/forex", icon: Globe },
 ];
 
 export function Navbar() {
