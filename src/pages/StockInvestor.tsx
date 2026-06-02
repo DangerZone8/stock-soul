@@ -563,30 +563,6 @@ const StockInvestor = () => {
             <FriendsTab onOpenUser={(id, name) => setOpenUser({ id, name })} />
           </TabsContent>
 
-          <TabsContent value="kaia">
-            <div className="glass-card p-3 sm:p-4">
-              <div className="flex items-center gap-2 mb-3 px-2">
-                <Heart className="w-4 h-4 text-primary" />
-                <h3 className="font-semibold">Ask Kaia (Investor mode — credits)</h3>
-              </div>
-              <DreamGirlChat
-                context="investor"
-                portfolio={
-                  `Username: ${profile?.username || "Trader"}\n` +
-                  `Coins: ${Number(profile?.coins ?? 0).toFixed(2)}\n` +
-                  `Net Profit (realized): ${Number(profile?.net_profit ?? 0).toFixed(2)}\n` +
-                  `Holdings (${holdings.length}):\n` +
-                  holdings.map(h => {
-                    const live = livePrices[h.symbol]?.price;
-                    const cost = h.avg_buy_price * h.quantity;
-                    const value = live ? live * h.quantity : cost;
-                    const pnl = value - cost;
-                    return `- ${h.symbol}: qty ${h.quantity}, avg ${h.avg_buy_price.toFixed(2)}, live ${live?.toFixed(2) ?? "?"}, P/L ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}`;
-                  }).join("\n")
-                }
-              />
-            </div>
-          </TabsContent>
 
           <TabsContent value="profile">
             <ProfileTab />
