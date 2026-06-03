@@ -44,20 +44,7 @@ interface ChartData {
   volumes: (number | null)[];
 }
 
-interface KaiaTip {
-  action: "strong_buy" | "buy" | "hold" | "sell" | "strong_sell";
-  confidence?: "high" | "medium" | "low";
-  sentiment: "bullish" | "neutral" | "bearish";
-  entry?: number;
-  stop?: number;
-  target?: number;
-  move_reason: string;
-  take: string;
-  headlines?: string[];
-}
-
 const LIVE_REFRESH_MS = 1000;
-const TIP_REFRESH_MS = 90000;
 const MAX_LIVE_POINTS = 600;
 
 const buildLiveChartData = (incoming: ChartData, previous?: ChartData | null): ChartData => {
