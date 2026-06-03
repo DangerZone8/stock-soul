@@ -181,12 +181,14 @@ const StockInvestor = () => {
     const q = qtyOverride ?? Number(qty);
     if (!symbol || !price || !q || q <= 0) { toast({ title: "Invalid trade", variant: "destructive" }); return; }
     setBusy(true);
-    const { data, error } = await supabase.rpc("execute_trade", {
-      p_symbol: symbol, p_currency: currency, p_type: type, p_quantity: q, p_price: price,
+    const { data: resp, error } = await supabase.functions.invoke("execute-verified-trade", {
+      body: { symbol, currency, type, quantity: q, price },
     });
     setBusy(false);
+    const data = (resp as any)?.data;
     if (error || !data?.[0]?.success) {
-      toast({ title: "Trade failed", description: data?.[0]?.message || error?.message, variant: "destructive" });
+      const msg = (resp as any)?.error || data?.[0]?.message || error?.message || "Trade failed";
+      toast({ title: "Trade failed", description: msg, variant: "destructive" });
       return;
     }
     const msg = data[0].message as string;
