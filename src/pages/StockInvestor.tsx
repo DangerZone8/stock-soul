@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { FriendsTab, ProfileTab, UserDialog } from "@/components/SocialPanel";
 import { FloatingKaia } from "@/components/FloatingKaia";
+import { KaiaTake } from "@/components/KaiaTake";
 import { UserCircle } from "lucide-react";
 
 const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
@@ -375,6 +376,18 @@ const StockInvestor = () => {
                   </button>
                 </div>
               </motion.div>
+            )}
+
+            {quote && (
+              <KaiaTake
+                symbol={quote.symbol}
+                price={quote.regularMarketPrice}
+                changePercent={prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0}
+                currency={currency}
+                closes={quote.closes}
+                context="investor"
+                decimals={2}
+              />
             )}
           </div>
 

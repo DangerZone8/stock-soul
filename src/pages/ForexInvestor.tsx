@@ -8,6 +8,7 @@ import { Navbar } from "@/components/Navbar";
 import { CandlestickBackground } from "@/components/CandlestickBackground";
 import { Footer } from "@/components/Footer";
 import { FloatingKaia } from "@/components/FloatingKaia";
+import { KaiaTake } from "@/components/KaiaTake";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -392,6 +393,19 @@ const ForexInvestor = () => {
                   </button>
                 </div>
               </motion.div>
+            )}
+
+            {quote && (
+              <KaiaTake
+                symbol={quote.symbol}
+                price={quote.regularMarketPrice}
+                changePercent={prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0}
+                currency={quote.currency}
+                closes={quote.closes}
+                label={pairLabel}
+                context="investor"
+                decimals={5}
+              />
             )}
           </div>
 
