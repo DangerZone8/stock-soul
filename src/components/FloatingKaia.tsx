@@ -66,24 +66,9 @@ export function FloatingKaia({ context, portfolio, label }: FloatingKaiaProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.18 }}
-            className="fixed bottom-24 right-5 z-50 w-[calc(100vw-2.5rem)] sm:w-[400px] max-h-[75vh] rounded-2xl shadow-2xl border border-border/50 bg-background/95 backdrop-blur-xl overflow-hidden flex flex-col"
+            className="fixed bottom-24 right-5 z-50 w-[calc(100vw-2.5rem)] sm:w-[400px] h-[70vh] sm:h-[600px] max-h-[80vh]"
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border/40 bg-gradient-to-r from-primary/10 to-pink-500/10">
-              <div className="flex items-center gap-2">
-                <Heart className="w-4 h-4 text-primary fill-current" />
-                <span className="font-semibold text-sm">{title}</span>
-              </div>
-              <button
-                onClick={() => setOpen(false)}
-                className="text-muted-foreground hover:text-foreground"
-                aria-label="Close"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <DreamGirlChat context={context} portfolio={portfolio} />
-            </div>
+            <DreamGirlChat context={context} portfolio={portfolio} />
           </motion.div>
         )}
       </AnimatePresence>
