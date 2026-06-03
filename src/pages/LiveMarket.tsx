@@ -101,12 +101,8 @@ const LiveMarket = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [tip, setTip] = useState<KaiaTip | null>(null);
-  const [tipLoading, setTipLoading] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const tipIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isFetchingRef = useRef(false);
-  const isFetchingTipRef = useRef(false);
 
   const fetchChart = useCallback(async (symbol: string, mode: "initial" | "live" = "live") => {
     if (isFetchingRef.current) return;
@@ -131,38 +127,7 @@ const LiveMarket = () => {
     }
   }, []);
 
-  const fetchTip = useCallback(async (symbol: string, price: number, changePercent: number, currency: string, closes: (number | null)[], volumes: (number | null)[]) => {
-    if (isFetchingTipRef.current) return;
-    if (!Number.isFinite(price) || price <= 0) return;
-    isFetchingTipRef.current = true;
-    setTipLoading(true);
-    try {
-      const cleanCloses = (closes || []).filter((c): c is number => c != null && Number.isFinite(c));
-      const cleanVols = (volumes || []).map((v) => (v == null ? 0 : v));
-      const res = await fetch(
-        `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/kaia-tip`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({ symbol, price, changePercent, currency, closes: cleanCloses, volumes: cleanVols }),
-        }
-      );
-      if (!res.ok) throw new Error("tip failed");
-      const data = await res.json();
-      if (!data.error) setTip(data);
-    } catch {
-      /* silent */
-    } finally {
-      setTipLoading(false);
-      isFetchingTipRef.current = false;
-    }
-  }, []);
-
   useEffect(() => {
-    setTip(null);
     fetchChart(activeTicker, "initial");
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => fetchChart(activeTicker, "live"), LIVE_REFRESH_MS);
@@ -170,26 +135,6 @@ const LiveMarket = () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [activeTicker, fetchChart]);
-
-  // Refresh Kaia's tip when chart data updates (throttled)
-  useEffect(() => {
-    if (!chartData) return;
-    const price = chartData.regularMarketPrice;
-    const prev = chartData.previousClose ?? price;
-    const pct = prev > 0 ? ((price - prev) / prev) * 100 : 0;
-    fetchTip(chartData.symbol, price, pct, chartData.currency, chartData.closes, chartData.volumes);
-    if (tipIntervalRef.current) clearInterval(tipIntervalRef.current);
-    tipIntervalRef.current = setInterval(() => {
-      const cur = chartData.regularMarketPrice;
-      const cprev = chartData.previousClose ?? cur;
-      const cpct = cprev > 0 ? ((cur - cprev) / cprev) * 100 : 0;
-      fetchTip(chartData.symbol, cur, cpct, chartData.currency, chartData.closes, chartData.volumes);
-    }, TIP_REFRESH_MS);
-    return () => {
-      if (tipIntervalRef.current) clearInterval(tipIntervalRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chartData?.symbol]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
