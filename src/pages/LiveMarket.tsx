@@ -16,6 +16,7 @@ import { Navbar } from "@/components/Navbar";
 import { CandlestickBackground } from "@/components/CandlestickBackground";
 import { Footer } from "@/components/Footer";
 import { FloatingKaia } from "@/components/FloatingKaia";
+import { KaiaTake } from "@/components/KaiaTake";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler);
 
@@ -433,77 +434,17 @@ const LiveMarket = () => {
               )}
             </motion.div>
 
-            {/* Kaia's Tip */}
+            {/* Kaia's Take */}
             {chartData && !error && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="glass-card p-5 sm:p-6"
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  <h3 className="font-semibold text-sm">Kaia's Take on {chartData.symbol}</h3>
-                  {tipLoading && <RefreshCw className="w-3 h-3 animate-spin text-muted-foreground" />}
-                </div>
-
-                {!tip && !tipLoading && (
-                  <p className="text-sm text-muted-foreground">Analyzing live data...</p>
-                )}
-
-                {tip && (
-                  <div className="space-y-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${actionStyles[tip.action] || actionStyles.hold}`}>
-                        {actionLabels[tip.action] || tip.action}
-                      </span>
-                      {tip.confidence && (
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium border capitalize ${
-                          tip.confidence === "high" ? "bg-primary/15 text-primary border-primary/30" :
-                          tip.confidence === "medium" ? "bg-secondary/50 text-foreground border-border/40" :
-                          "bg-muted/40 text-muted-foreground border-border/30"
-                        }`}>
-                          Confidence: {tip.confidence}
-                        </span>
-                      )}
-                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-secondary/50 border border-border/40 text-muted-foreground capitalize">
-                        Sentiment: {tip.sentiment}
-                      </span>
-                    </div>
-                    {(tip.entry != null || tip.stop != null || tip.target != null) && (
-                      <div className="grid grid-cols-3 gap-2 text-xs">
-                        <div className="rounded-lg border border-border/40 bg-secondary/30 p-2">
-                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono">Entry</div>
-                          <div className="font-mono font-semibold text-foreground">{tip.entry?.toFixed(2) ?? "—"}</div>
-                        </div>
-                        <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-2">
-                          <div className="text-[10px] uppercase tracking-wider text-red-500/80 font-mono">Stop</div>
-                          <div className="font-mono font-semibold text-red-500">{tip.stop?.toFixed(2) ?? "—"}</div>
-                        </div>
-                        <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-2">
-                          <div className="text-[10px] uppercase tracking-wider text-green-500/80 font-mono">Target</div>
-                          <div className="font-mono font-semibold text-green-500">{tip.target?.toFixed(2) ?? "—"}</div>
-                        </div>
-                      </div>
-                    )}
-                    <p className="text-sm text-foreground leading-relaxed">{tip.take}</p>
-                    <div className="text-xs text-muted-foreground border-t border-border/30 pt-2">
-                      <span className="font-semibold text-foreground">Why it's moving: </span>{tip.move_reason}
-                    </div>
-                    {tip.headlines && tip.headlines.length > 0 && (
-                      <div className="pt-2 border-t border-border/30">
-                        <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground mb-2">
-                          <Newspaper className="w-3 h-3" /> Latest headlines
-                        </div>
-                        <ul className="space-y-1">
-                          {tip.headlines.slice(0, 4).map((h, i) => (
-                            <li key={i} className="text-xs text-muted-foreground leading-relaxed">• {h}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </motion.div>
+              <KaiaTake
+                symbol={chartData.symbol}
+                price={chartData.regularMarketPrice}
+                changePercent={chartData.previousClose > 0 ? ((chartData.regularMarketPrice - chartData.previousClose) / chartData.previousClose) * 100 : 0}
+                currency={chartData.currency}
+                closes={chartData.closes}
+                volumes={chartData.volumes}
+                context="live"
+              />
             )}
           </div>
         </div>
