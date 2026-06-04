@@ -8,6 +8,8 @@ import { CandlestickBackground } from "@/components/CandlestickBackground";
 import { Footer } from "@/components/Footer";
 import { DevMode } from "@/components/DevMode";
 import { HomeUserPanel } from "@/components/HomeUserPanel";
+import { PersonalStats } from "@/components/PersonalStats";
+import { WeeklyChallenge } from "@/components/WeeklyChallenge";
 
 const Index = () => {
   return (
@@ -16,7 +18,9 @@ const Index = () => {
       <TickerTape />
       <Navbar />
       <HeroSection />
+      <PersonalStats />
       <HomeUserPanel />
+      <WeeklyChallenge />
       <QuickGuide />
       <TrackRecord />
       <MarketMood />
