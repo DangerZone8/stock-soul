@@ -166,6 +166,7 @@ export type Database = {
           coins_delta: number
           created_at: string
           id: string
+          pnl: number
           price: number
           quantity: number
           symbol: string
@@ -176,6 +177,7 @@ export type Database = {
           coins_delta: number
           created_at?: string
           id?: string
+          pnl?: number
           price: number
           quantity: number
           symbol: string
@@ -186,6 +188,7 @@ export type Database = {
           coins_delta?: number
           created_at?: string
           id?: string
+          pnl?: number
           price?: number
           quantity?: number
           symbol?: string
@@ -230,6 +233,33 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_winners: {
+        Row: {
+          coins_earned: number
+          created_at: string
+          id: string
+          user_id: string
+          username: string
+          week_start: string
+        }
+        Insert: {
+          coins_earned?: number
+          created_at?: string
+          id?: string
+          user_id: string
+          username: string
+          week_start: string
+        }
+        Update: {
+          coins_earned?: number
+          created_at?: string
+          id?: string
+          user_id?: string
+          username?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -240,6 +270,14 @@ export type Database = {
         Returns: {
           message: string
           success: boolean
+        }[]
+      }
+      award_last_week_winner: {
+        Args: never
+        Returns: {
+          awarded: boolean
+          coins_earned: number
+          username: string
         }[]
       }
       change_username: {
@@ -259,6 +297,7 @@ export type Database = {
           message: string
         }[]
       }
+      compute_league: { Args: { p_net_profit: number }; Returns: string }
       execute_trade: {
         Args: {
           p_currency: string
@@ -294,6 +333,14 @@ export type Database = {
           username: string
         }[]
       }
+      get_latest_weekly_winner: {
+        Args: never
+        Returns: {
+          coins_earned: number
+          username: string
+          week_start: string
+        }[]
+      }
       get_leaderboard: {
         Args: { p_kind?: string; p_limit?: number }
         Returns: {
@@ -322,6 +369,34 @@ export type Database = {
           quantity: number
           symbol: string
           type: string
+        }[]
+      }
+      get_user_stats: {
+        Args: { p_user?: string }
+        Returns: {
+          coins: number
+          holdings_count: number
+          joined_at: string
+          league: string
+          losses: number
+          net_profit: number
+          portfolio_value: number
+          total_buys: number
+          total_sells: number
+          total_trades: number
+          username: string
+          win_rate: number
+          wins: number
+        }[]
+      }
+      get_weekly_leaderboard: {
+        Args: { p_limit?: number }
+        Returns: {
+          coins_earned: number
+          rank: number
+          trades: number
+          user_id: string
+          username: string
         }[]
       }
       redeem_referral: {
@@ -355,6 +430,7 @@ export type Database = {
           success: boolean
         }[]
       }
+      week_monday: { Args: { d: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
