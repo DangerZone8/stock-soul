@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, TrendingUp, TrendingDown, RefreshCw, Coins, Globe, Sparkles, Plus, Minus, Trophy, ArrowRight } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, RefreshCw, Coins, Globe, Sparkles, Plus, Minus, Trophy, ArrowRight, Users, Crown, Medal, Copy, Share2, UserCircle, Briefcase } from "lucide-react";
 import { Line } from "react-chartjs-2";
 import "chart.js/auto";
 import { Navbar } from "@/components/Navbar";
@@ -9,12 +9,16 @@ import { CandlestickBackground } from "@/components/CandlestickBackground";
 import { Footer } from "@/components/Footer";
 import { FloatingKaia } from "@/components/FloatingKaia";
 import { KaiaTake } from "@/components/KaiaTake";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { FriendsTab, ProfileTab, UserDialog } from "@/components/SocialPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 const REFRESH_MS = 1000;
+
+interface LeaderRow { rank: number; user_id: string; username: string; coins: number; net_profit: number; }
 
 // All commonly tradeable currencies on Yahoo (=X pairs)
 const CURRENCIES = [
@@ -79,7 +83,44 @@ const ForexInvestor = () => {
   const [busy, setBusy] = useState(false);
   const [searching, setSearching] = useState(false);
   const [flash, setFlash] = useState<{ kind: "profit" | "loss"; text: string } | null>(null);
+  const [leaderKind, setLeaderKind] = useState<"coins" | "profit">("profit");
+  const [leaderboard, setLeaderboard] = useState<LeaderRow[]>([]);
+  const [refCode, setRefCode] = useState("");
+  const [openUser, setOpenUser] = useState<{ id: string; name: string } | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const loadLeaderboard = useCallback(async (kind: "coins" | "profit") => {
+    const { data } = await supabase.rpc("get_leaderboard", { p_kind: kind, p_limit: 25 });
+    if (data) setLeaderboard(data as unknown as LeaderRow[]);
+  }, []);
+  useEffect(() => { loadLeaderboard(leaderKind); }, [leaderKind, loadLeaderboard]);
+
+  const redeemReferral = async () => {
+    if (!refCode.trim()) return;
+    const { data, error } = await supabase.rpc("redeem_referral", { p_code: refCode.trim() });
+    if (error || !data?.[0]?.success) {
+      toast({ title: "Referral", description: data?.[0]?.message || error?.message || "Failed", variant: "destructive" });
+    } else {
+      toast({ title: "Referral applied!", description: data[0].message });
+      setRefCode("");
+      await refreshProfile();
+    }
+  };
+  const copyCode = async () => {
+    if (!profile?.referral_code) return;
+    await navigator.clipboard.writeText(profile.referral_code);
+    toast({ title: "Copied!", description: "Referral code copied." });
+  };
+  const shareCode = async () => {
+    if (!profile?.referral_code) return;
+    const text = `Join me on StockSoul! Use code ${profile.referral_code} to get +100 bonus coins. ${window.location.origin}/auth`;
+    if (navigator.share) {
+      try { await navigator.share({ title: "StockSoul", text }); } catch { /* cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(text);
+      toast({ title: "Invite copied!", description: "Share message copied to clipboard." });
+    }
+  };
 
   // Keep base/quote selectors in sync with the active ticker
   useEffect(() => {
@@ -297,6 +338,16 @@ const ForexInvestor = () => {
           </div>
         </motion.div>
 
+        <Tabs defaultValue="trade" className="w-full">
+          <TabsList className="mb-6 bg-secondary/40 border border-border/30 flex-wrap h-auto">
+            <TabsTrigger value="trade" className="gap-1.5"><Globe className="w-3.5 h-3.5" />Trade</TabsTrigger>
+            <TabsTrigger value="leaderboard" className="gap-1.5"><Trophy className="w-3.5 h-3.5" />Leaderboard</TabsTrigger>
+            <TabsTrigger value="friends" className="gap-1.5"><Users className="w-3.5 h-3.5" />Friends</TabsTrigger>
+            <TabsTrigger value="referral" className="gap-1.5"><Sparkles className="w-3.5 h-3.5" />Referral</TabsTrigger>
+            <TabsTrigger value="profile" className="gap-1.5"><UserCircle className="w-3.5 h-3.5" />Profile</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="trade">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             {/* Pair selector — dropdowns + search */}
@@ -468,7 +519,136 @@ const ForexInvestor = () => {
             </div>
           </div>
         </div>
+          </TabsContent>
+
+          <TabsContent value="leaderboard">
+            <div className="glass-card p-5 sm:p-6">
+              <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
+                <div className="flex items-center gap-2">
+                  <Crown className="w-5 h-5 text-amber-500" />
+                  <h3 className="text-xl font-semibold">Top Traders (Stocks + Forex)</h3>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => setLeaderKind("coins")}
+                    className={`px-3 h-9 rounded-lg text-sm font-medium transition ${leaderKind === "coins" ? "bg-primary text-primary-foreground" : "bg-secondary/60 text-muted-foreground hover:text-foreground"}`}>
+                    By Coins
+                  </button>
+                  <button onClick={() => setLeaderKind("profit")}
+                    className={`px-3 h-9 rounded-lg text-sm font-medium transition ${leaderKind === "profit" ? "bg-primary text-primary-foreground" : "bg-secondary/60 text-muted-foreground hover:text-foreground"}`}>
+                    By Net Profit
+                  </button>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-xs uppercase text-muted-foreground border-b border-border/40">
+                      <th className="text-left py-2 px-2 w-16">Rank</th>
+                      <th className="text-left py-2 px-2">Trader</th>
+                      <th className="text-right py-2 px-2">Coins</th>
+                      <th className="text-right py-2 px-2">Net Profit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leaderboard.length === 0 ? (
+                      <tr><td colSpan={4} className="text-center py-10 text-muted-foreground">No traders yet — be the first!</td></tr>
+                    ) : leaderboard.map(row => {
+                      const isMe = row.user_id === user?.id;
+                      const medal = row.rank === 1 ? "🥇" : row.rank === 2 ? "🥈" : row.rank === 3 ? "🥉" : null;
+                      return (
+                        <tr key={row.user_id} className={`border-b border-border/20 ${isMe ? "bg-primary/10" : "hover:bg-secondary/30"}`}>
+                          <td className="py-3 px-2 font-mono font-bold">{medal || `#${row.rank}`}</td>
+                          <td className="py-3 px-2 font-medium">
+                            <button onClick={() => !isMe && setOpenUser({ id: row.user_id, name: row.username })}
+                              className={`text-left hover:text-primary transition ${isMe ? "" : "cursor-pointer"}`}>
+                              {row.username}{isMe && <span className="ml-2 text-xs text-primary font-semibold">(you)</span>}
+                            </button>
+                          </td>
+                          <td className="py-3 px-2 text-right font-mono text-amber-500">{Number(row.coins).toFixed(2)}</td>
+                          <td className={`py-3 px-2 text-right font-mono ${Number(row.net_profit) >= 0 ? "text-green-500" : "text-red-500"}`}>
+                            {Number(row.net_profit) >= 0 ? "+" : ""}{Number(row.net_profit).toFixed(2)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-xs text-muted-foreground mt-4 flex items-center gap-1.5">
+                <Medal className="w-3.5 h-3.5" /> Rankings combine activity from Stock Investor and Forex Investor.
+              </p>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="friends">
+            <FriendsTab onOpenUser={(id, name) => setOpenUser({ id, name })} />
+          </TabsContent>
+
+          <TabsContent value="referral">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="glass-card p-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <h3 className="font-semibold">Your Referral Code</h3>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Share your code. Friends get <span className="text-amber-500 font-semibold">+100 coins</span>, and you earn{" "}
+                  <span className="text-green-500 font-semibold">+150 coins</span> for every signup that uses it.
+                </p>
+                <div className="flex items-center gap-2 p-4 rounded-xl bg-secondary/50 border border-border/40 mb-3">
+                  <code className="flex-1 font-mono text-2xl font-bold tracking-widest text-primary select-all">
+                    {profile?.referral_code || "—"}
+                  </code>
+                  <button onClick={copyCode}
+                    className="h-10 px-3 rounded-lg bg-secondary border border-border/50 hover:bg-secondary/80 flex items-center gap-1.5 text-sm font-medium">
+                    <Copy className="w-4 h-4" /> Copy
+                  </button>
+                </div>
+                <button onClick={shareCode}
+                  className="w-full h-11 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 flex items-center justify-center gap-2">
+                  <Share2 className="w-4 h-4" /> Share invite
+                </button>
+              </div>
+              <div className="glass-card p-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <Users className="w-4 h-4 text-primary" />
+                  <h3 className="font-semibold">Got a code?</h3>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Enter a friend's referral code to claim <span className="text-amber-500 font-semibold">+100 bonus coins</span>. One-time use.
+                </p>
+                {profile?.referred_by ? (
+                  <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/30 text-sm text-green-600 dark:text-green-400">
+                    ✓ You've already redeemed a referral. Thanks for joining through a friend!
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <input value={refCode} onChange={e => setRefCode(e.target.value.toUpperCase())}
+                      placeholder="ENTER CODE"
+                      maxLength={12}
+                      className="w-full h-11 px-3 rounded-lg bg-secondary/50 border border-border/50 font-mono tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-primary/40" />
+                    <button onClick={redeemReferral} disabled={!refCode.trim()}
+                      className="w-full h-11 rounded-lg bg-amber-500 text-white font-semibold hover:bg-amber-600 disabled:opacity-60">
+                      Redeem code
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="profile">
+            <ProfileTab />
+          </TabsContent>
+        </Tabs>
       </div>
+
+      <UserDialog
+        userId={openUser?.id ?? null}
+        username={openUser?.name ?? ""}
+        open={!!openUser}
+        onClose={() => setOpenUser(null)}
+      />
 
       <FloatingKaia context="investor" portfolio={portfolioCtx} />
 

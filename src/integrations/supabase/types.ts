@@ -233,6 +233,30 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_entries: {
+        Row: {
+          created_at: string
+          fee_paid: number
+          id: string
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          fee_paid?: number
+          id?: string
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          fee_paid?: number
+          id?: string
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
       weekly_winners: {
         Row: {
           coins_earned: number
@@ -298,6 +322,15 @@ export type Database = {
         }[]
       }
       compute_league: { Args: { p_net_profit: number }; Returns: string }
+      enter_weekly_challenge: {
+        Args: never
+        Returns: {
+          coins: number
+          message: string
+          success: boolean
+          week_start: string
+        }[]
+      }
       execute_trade: {
         Args: {
           p_currency: string
@@ -349,6 +382,14 @@ export type Database = {
           rank: number
           user_id: string
           username: string
+        }[]
+      }
+      get_my_weekly_entry: {
+        Args: never
+        Returns: {
+          entered: boolean
+          entrants: number
+          week_start: string
         }[]
       }
       get_user_public: {
