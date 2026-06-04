@@ -83,7 +83,44 @@ const ForexInvestor = () => {
   const [busy, setBusy] = useState(false);
   const [searching, setSearching] = useState(false);
   const [flash, setFlash] = useState<{ kind: "profit" | "loss"; text: string } | null>(null);
+  const [leaderKind, setLeaderKind] = useState<"coins" | "profit">("profit");
+  const [leaderboard, setLeaderboard] = useState<LeaderRow[]>([]);
+  const [refCode, setRefCode] = useState("");
+  const [openUser, setOpenUser] = useState<{ id: string; name: string } | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const loadLeaderboard = useCallback(async (kind: "coins" | "profit") => {
+    const { data } = await supabase.rpc("get_leaderboard", { p_kind: kind, p_limit: 25 });
+    if (data) setLeaderboard(data as unknown as LeaderRow[]);
+  }, []);
+  useEffect(() => { loadLeaderboard(leaderKind); }, [leaderKind, loadLeaderboard]);
+
+  const redeemReferral = async () => {
+    if (!refCode.trim()) return;
+    const { data, error } = await supabase.rpc("redeem_referral", { p_code: refCode.trim() });
+    if (error || !data?.[0]?.success) {
+      toast({ title: "Referral", description: data?.[0]?.message || error?.message || "Failed", variant: "destructive" });
+    } else {
+      toast({ title: "Referral applied!", description: data[0].message });
+      setRefCode("");
+      await refreshProfile();
+    }
+  };
+  const copyCode = async () => {
+    if (!profile?.referral_code) return;
+    await navigator.clipboard.writeText(profile.referral_code);
+    toast({ title: "Copied!", description: "Referral code copied." });
+  };
+  const shareCode = async () => {
+    if (!profile?.referral_code) return;
+    const text = `Join me on StockSoul! Use code ${profile.referral_code} to get +100 bonus coins. ${window.location.origin}/auth`;
+    if (navigator.share) {
+      try { await navigator.share({ title: "StockSoul", text }); } catch { /* cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(text);
+      toast({ title: "Invite copied!", description: "Share message copied to clipboard." });
+    }
+  };
 
   // Keep base/quote selectors in sync with the active ticker
   useEffect(() => {
