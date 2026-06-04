@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, TrendingUp, TrendingDown, RefreshCw, Coins, Globe, Sparkles, Plus, Minus, Trophy, ArrowRight } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, RefreshCw, Coins, Globe, Sparkles, Plus, Minus, Trophy, ArrowRight, Users, Crown, Medal, Copy, Share2, UserCircle, Briefcase } from "lucide-react";
 import { Line } from "react-chartjs-2";
 import "chart.js/auto";
 import { Navbar } from "@/components/Navbar";
@@ -9,12 +9,16 @@ import { CandlestickBackground } from "@/components/CandlestickBackground";
 import { Footer } from "@/components/Footer";
 import { FloatingKaia } from "@/components/FloatingKaia";
 import { KaiaTake } from "@/components/KaiaTake";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { FriendsTab, ProfileTab, UserDialog } from "@/components/SocialPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 const REFRESH_MS = 1000;
+
+interface LeaderRow { rank: number; user_id: string; username: string; coins: number; net_profit: number; }
 
 // All commonly tradeable currencies on Yahoo (=X pairs)
 const CURRENCIES = [
