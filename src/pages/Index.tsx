@@ -8,6 +8,7 @@ import { Footer } from "@/components/Footer";
 import { DevMode } from "@/components/DevMode";
 import { PersonalStats } from "@/components/PersonalStats";
 import { WeeklyChallenge } from "@/components/WeeklyChallenge";
+import { TournamentsTab } from "@/components/TournamentsTab";
 
 const Index = () => {
   return (
