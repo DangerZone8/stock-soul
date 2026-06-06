@@ -468,7 +468,7 @@ serve(async (req) => {
     const portfolioNote = portfolio && typeof portfolio === "string" && portfolio.length > 0
       ? `\n\nUser Portfolio (use this when they ask about their portfolio, profile, profit, or trades):\n${portfolio.slice(0, 2000)}`
       : "";
-    const systemMessage = promptMap[mode] + realTimeContext + fileContext + contextNote + portfolioNote;
+    const systemMessage = promptMap[mode] + realTimeContext + fileContext + contextNote + featuresNote + portfolioNote;
 
     // Build messages for API - use vision if image attached
     const apiMessages: any[] = [{ role: "system", content: systemMessage }];
