@@ -9,6 +9,7 @@ import { DevMode } from "@/components/DevMode";
 import { PersonalStats } from "@/components/PersonalStats";
 import { WeeklyChallenge } from "@/components/WeeklyChallenge";
 import { TournamentsTab } from "@/components/TournamentsTab";
+import { AdminTournamentCreate } from "@/components/AdminTournamentCreate";
 
 const Index = () => {
   return (
