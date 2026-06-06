@@ -8,6 +8,8 @@ import { Footer } from "@/components/Footer";
 import { DevMode } from "@/components/DevMode";
 import { PersonalStats } from "@/components/PersonalStats";
 import { WeeklyChallenge } from "@/components/WeeklyChallenge";
+import { TournamentsTab } from "@/components/TournamentsTab";
+import { AdminTournamentCreate } from "@/components/AdminTournamentCreate";
 
 const Index = () => {
   return (
@@ -18,6 +20,10 @@ const Index = () => {
       <HeroSection />
       <PersonalStats />
       <WeeklyChallenge />
+      <section className="container mx-auto px-4 py-8 max-w-6xl space-y-4">
+        <AdminTournamentCreate />
+        <TournamentsTab market="all" />
+      </section>
       <QuickGuide />
       <MarketMood />
       <Footer />

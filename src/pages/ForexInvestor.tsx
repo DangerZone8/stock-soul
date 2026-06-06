@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, TrendingUp, TrendingDown, RefreshCw, Coins, Globe, Sparkles, Plus, Minus, Trophy, ArrowRight, Users, Crown, Medal, Copy, Share2, UserCircle, Briefcase } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, RefreshCw, Coins, Globe, Sparkles, Plus, Minus, Trophy, ArrowRight, Users, Crown, Medal, Copy, Share2, UserCircle, Briefcase, Swords } from "lucide-react";
 import { Line } from "react-chartjs-2";
 import "chart.js/auto";
 import { Navbar } from "@/components/Navbar";
@@ -11,6 +11,8 @@ import { FloatingKaia } from "@/components/FloatingKaia";
 import { KaiaTake } from "@/components/KaiaTake";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { FriendsTab, ProfileTab, UserDialog } from "@/components/SocialPanel";
+import { CopyTradingTab } from "@/components/CopyTradingTab";
+import { TournamentsTab } from "@/components/TournamentsTab";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -342,10 +344,15 @@ const ForexInvestor = () => {
           <TabsList className="mb-6 bg-secondary/40 border border-border/30 flex-wrap h-auto">
             <TabsTrigger value="trade" className="gap-1.5"><Globe className="w-3.5 h-3.5" />Trade</TabsTrigger>
             <TabsTrigger value="leaderboard" className="gap-1.5"><Trophy className="w-3.5 h-3.5" />Leaderboard</TabsTrigger>
+            <TabsTrigger value="copy" className="gap-1.5"><Copy className="w-3.5 h-3.5" />Copy Trading</TabsTrigger>
+            <TabsTrigger value="tournaments" className="gap-1.5"><Swords className="w-3.5 h-3.5" />Tournaments</TabsTrigger>
             <TabsTrigger value="friends" className="gap-1.5"><Users className="w-3.5 h-3.5" />Friends</TabsTrigger>
             <TabsTrigger value="referral" className="gap-1.5"><Sparkles className="w-3.5 h-3.5" />Referral</TabsTrigger>
             <TabsTrigger value="profile" className="gap-1.5"><UserCircle className="w-3.5 h-3.5" />Profile</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="copy"><CopyTradingTab market="forex" /></TabsContent>
+          <TabsContent value="tournaments"><TournamentsTab market="forex" /></TabsContent>
 
           <TabsContent value="trade">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
