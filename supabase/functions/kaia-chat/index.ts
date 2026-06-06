@@ -464,6 +464,7 @@ serve(async (req) => {
       : context === "live"
       ? "\n\nCONTEXT: User is on the Live Market page — speak normally about buy/sell with real prices."
       : "";
+    const featuresNote = "\n\nNEW FEATURES you can guide users about: (1) Copy Trading tab — users follow top traders and tap 'Copy' to mirror a specific trade with their own coins (risk settings: max coins per trade, stop-loss %). (2) Tournaments tab — daily (100 coin entry) and weekly (250 coin entry) auto-running tournaments plus admin specials; top 3 split the prize pool 50/30/20 based on profit during the window. Both work in Stock Investor and Forex Investor.";
     const portfolioNote = portfolio && typeof portfolio === "string" && portfolio.length > 0
       ? `\n\nUser Portfolio (use this when they ask about their portfolio, profile, profit, or trades):\n${portfolio.slice(0, 2000)}`
       : "";
