@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      copy_settings: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          leader_id: string
+          max_coins_per_trade: number
+          realized_loss: number
+          stop_loss_pct: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          leader_id: string
+          max_coins_per_trade?: number
+          realized_loss?: number
+          stop_loss_pct?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          leader_id?: string
+          max_coins_per_trade?: number
+          realized_loss?: number
+          stop_loss_pct?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       direct_messages: {
         Row: {
           body: string
@@ -161,36 +197,154 @@ export type Database = {
         }
         Relationships: []
       }
+      tournament_entries: {
+        Row: {
+          fee_paid: number
+          id: string
+          joined_at: string
+          tournament_id: string
+          user_id: string
+        }
+        Insert: {
+          fee_paid?: number
+          id?: string
+          joined_at?: string
+          tournament_id: string
+          user_id: string
+        }
+        Update: {
+          fee_paid?: number
+          id?: string
+          joined_at?: string
+          tournament_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_entries_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournament_winners: {
+        Row: {
+          awarded_at: string
+          id: string
+          prize: number
+          rank: number
+          tournament_id: string
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          awarded_at?: string
+          id?: string
+          prize: number
+          rank: number
+          tournament_id: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          awarded_at?: string
+          id?: string
+          prize?: number
+          rank?: number
+          tournament_id?: string
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_winners_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournaments: {
+        Row: {
+          awarded: boolean
+          created_at: string
+          created_by: string | null
+          ends_at: string
+          entry_fee: number
+          id: string
+          kind: Database["public"]["Enums"]["tournament_kind"]
+          market: Database["public"]["Enums"]["tournament_market"]
+          name: string
+          prize_pool: number
+          starts_at: string
+        }
+        Insert: {
+          awarded?: boolean
+          created_at?: string
+          created_by?: string | null
+          ends_at: string
+          entry_fee?: number
+          id?: string
+          kind?: Database["public"]["Enums"]["tournament_kind"]
+          market?: Database["public"]["Enums"]["tournament_market"]
+          name: string
+          prize_pool?: number
+          starts_at: string
+        }
+        Update: {
+          awarded?: boolean
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string
+          entry_fee?: number
+          id?: string
+          kind?: Database["public"]["Enums"]["tournament_kind"]
+          market?: Database["public"]["Enums"]["tournament_market"]
+          name?: string
+          prize_pool?: number
+          starts_at?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           coins_delta: number
+          copied_from_user: string | null
           created_at: string
           id: string
           pnl: number
           price: number
           quantity: number
+          source_trade_id: string | null
           symbol: string
           type: string
           user_id: string
         }
         Insert: {
           coins_delta: number
+          copied_from_user?: string | null
           created_at?: string
           id?: string
           pnl?: number
           price: number
           quantity: number
+          source_trade_id?: string | null
           symbol: string
           type: string
           user_id: string
         }
         Update: {
           coins_delta?: number
+          copied_from_user?: string | null
           created_at?: string
           id?: string
           pnl?: number
           price?: number
           quantity?: number
+          source_trade_id?: string | null
           symbol?: string
           type?: string
           user_id?: string
@@ -304,6 +458,14 @@ export type Database = {
           username: string
         }[]
       }
+      award_pending_tournaments: { Args: never; Returns: number }
+      award_tournament: {
+        Args: { p_id: string }
+        Returns: {
+          awarded: boolean
+          message: string
+        }[]
+      }
       change_username: {
         Args: { p_new: string }
         Returns: {
@@ -322,6 +484,31 @@ export type Database = {
         }[]
       }
       compute_league: { Args: { p_net_profit: number }; Returns: string }
+      copy_trade: {
+        Args: { p_price: number; p_source: string }
+        Returns: {
+          coins: number
+          message: string
+          success: boolean
+        }[]
+      }
+      create_tournament: {
+        Args: {
+          p_ends_at: string
+          p_entry_fee: number
+          p_kind?: Database["public"]["Enums"]["tournament_kind"]
+          p_market: Database["public"]["Enums"]["tournament_market"]
+          p_name: string
+          p_prize_pool: number
+          p_starts_at: string
+        }
+        Returns: {
+          id: string
+          message: string
+          success: boolean
+        }[]
+      }
+      ensure_recurring_tournaments: { Args: never; Returns: undefined }
       enter_weekly_challenge: {
         Args: never
         Returns: {
@@ -343,6 +530,21 @@ export type Database = {
           coins: number
           message: string
           success: boolean
+        }[]
+      }
+      get_copy_feed: {
+        Args: { p_limit?: number }
+        Returns: {
+          already_copied: boolean
+          created_at: string
+          leader_id: string
+          pnl: number
+          price: number
+          quantity: number
+          symbol: string
+          trade_id: string
+          type: string
+          username: string
         }[]
       }
       get_friends_leaderboard: {
@@ -384,12 +586,52 @@ export type Database = {
           username: string
         }[]
       }
+      get_my_copy_leaders: {
+        Args: never
+        Returns: {
+          active: boolean
+          coins: number
+          leader_id: string
+          max_coins_per_trade: number
+          net_profit: number
+          realized_loss: number
+          stop_loss_pct: number
+          username: string
+        }[]
+      }
       get_my_weekly_entry: {
         Args: never
         Returns: {
           entered: boolean
           entrants: number
           week_start: string
+        }[]
+      }
+      get_tournament_leaderboard: {
+        Args: { p_id: string; p_limit?: number }
+        Returns: {
+          coins_earned: number
+          rank: number
+          trades: number
+          user_id: string
+          username: string
+        }[]
+      }
+      get_tournaments: {
+        Args: never
+        Returns: {
+          awarded: boolean
+          ends_at: string
+          entrants: number
+          entry_fee: number
+          id: string
+          joined: boolean
+          kind: Database["public"]["Enums"]["tournament_kind"]
+          market: Database["public"]["Enums"]["tournament_market"]
+          name: string
+          prize_pool: number
+          starts_at: string
+          status: string
         }[]
       }
       get_user_public: {
@@ -440,6 +682,15 @@ export type Database = {
           username: string
         }[]
       }
+      is_admin: { Args: never; Returns: boolean }
+      join_tournament: {
+        Args: { p_id: string }
+        Returns: {
+          coins: number
+          message: string
+          success: boolean
+        }[]
+      }
       redeem_referral: {
         Args: { p_code: string }
         Returns: {
@@ -463,6 +714,18 @@ export type Database = {
           success: boolean
         }[]
       }
+      set_copy_settings: {
+        Args: {
+          p_active: boolean
+          p_leader: string
+          p_max: number
+          p_stop_pct: number
+        }
+        Returns: {
+          message: string
+          success: boolean
+        }[]
+      }
       toggle_follow: {
         Args: { p_target: string }
         Returns: {
@@ -474,7 +737,8 @@ export type Database = {
       week_monday: { Args: { d: string }; Returns: string }
     }
     Enums: {
-      [_ in never]: never
+      tournament_kind: "daily" | "weekly" | "custom"
+      tournament_market: "stock" | "forex" | "both"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -601,6 +865,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      tournament_kind: ["daily", "weekly", "custom"],
+      tournament_market: ["stock", "forex", "both"],
+    },
   },
 } as const
