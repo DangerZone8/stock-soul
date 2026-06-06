@@ -11,6 +11,8 @@ import { FloatingKaia } from "@/components/FloatingKaia";
 import { KaiaTake } from "@/components/KaiaTake";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { FriendsTab, ProfileTab, UserDialog } from "@/components/SocialPanel";
+import { CopyTradingTab } from "@/components/CopyTradingTab";
+import { TournamentsTab } from "@/components/TournamentsTab";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
