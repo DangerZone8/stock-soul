@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Copy, Users, TrendingUp, TrendingDown, Settings2, X, RefreshCw } from "lucide-react";
+import { Copy, Users, TrendingUp, TrendingDown, Settings2, X, RefreshCw, UserMinus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
