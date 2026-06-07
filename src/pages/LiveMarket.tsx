@@ -327,6 +327,12 @@ const LiveMarket = () => {
                         <span>{lastUpdated.toLocaleTimeString()}</span>
                       </div>
                     )}
+                    <SetAlertButton
+                      symbol={chartData.symbol}
+                      currentPrice={price}
+                      market={chartData.symbol.endsWith("=X") ? "forex" : chartData.symbol.endsWith("-USD") ? "crypto" : "stock"}
+                      size="sm"
+                    />
                   </div>
                 </div>
               </motion.div>
