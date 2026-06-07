@@ -17,6 +17,7 @@ import { CandlestickBackground } from "@/components/CandlestickBackground";
 import { Footer } from "@/components/Footer";
 import { FloatingKaia } from "@/components/FloatingKaia";
 import { KaiaTake } from "@/components/KaiaTake";
+import { SetAlertButton } from "@/components/SetAlertButton";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler);
 
