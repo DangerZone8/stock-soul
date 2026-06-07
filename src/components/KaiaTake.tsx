@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, RefreshCw, Newspaper } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 const TIP_REFRESH_MS = 90_000;
