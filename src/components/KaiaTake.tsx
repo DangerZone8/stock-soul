@@ -80,13 +80,15 @@ export function KaiaTake({
     try {
       const cleanCloses = (closes || []).filter((c): c is number => c != null && Number.isFinite(c));
       const cleanVols = (volumes || []).map((v) => (v == null ? 0 : v));
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { setLoading(false); isFetchingRef.current = false; return; }
       const res = await fetch(
         `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/kaia-tip`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
             symbol, price, changePercent, currency,
