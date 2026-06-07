@@ -10,7 +10,6 @@ import { Footer } from "@/components/Footer";
 import { FloatingKaia } from "@/components/FloatingKaia";
 import { KaiaTake } from "@/components/KaiaTake";
 import { SetAlertButton } from "@/components/SetAlertButton";
-import { AlertsManager } from "@/components/AlertsManager";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { FriendsTab, ProfileTab, UserDialog } from "@/components/SocialPanel";
 import { CopyTradingTab } from "@/components/CopyTradingTab";

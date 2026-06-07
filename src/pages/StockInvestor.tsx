@@ -15,7 +15,6 @@ import { FriendsTab, ProfileTab, UserDialog } from "@/components/SocialPanel";
 import { FloatingKaia } from "@/components/FloatingKaia";
 import { KaiaTake } from "@/components/KaiaTake";
 import { SetAlertButton } from "@/components/SetAlertButton";
-import { AlertsManager } from "@/components/AlertsManager";
 import { CopyTradingTab } from "@/components/CopyTradingTab";
 import { TournamentsTab } from "@/components/TournamentsTab";
 import { UserCircle, Swords } from "lucide-react";
