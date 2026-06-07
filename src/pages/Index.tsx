@@ -20,6 +20,7 @@ const Index = () => {
       <Navbar />
       <HeroSection />
       <PersonalStats />
+      <StreakCard />
       <WeeklyChallenge />
       <section className="container mx-auto px-4 py-8 max-w-6xl space-y-4">
         <AdminTournamentCreate />
