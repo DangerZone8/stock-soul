@@ -154,7 +154,7 @@ export function CopyTradingTab({ market = "all" }: { market?: "stock" | "forex" 
                   <button
                     onClick={async () => {
                       if (!confirm(`Stop copying @${l.username}?`)) return;
-                      const { error } = await supabase.rpc("remove_copy_leader", { p_leader: l.leader_id });
+                      const { error } = await (supabase.rpc as any)("remove_copy_leader", { p_leader: l.leader_id });
                       if (error) { toast({ title: "Failed", description: error.message, variant: "destructive" }); return; }
                       toast({ title: `Stopped copying @${l.username}` });
                       load();
