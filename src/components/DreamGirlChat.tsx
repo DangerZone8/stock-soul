@@ -4,6 +4,7 @@ import { Send, Heart, Sparkles, Bot, Paperclip, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 type KaiaMode = "flirty" | "default" | "savage" | null;
 
