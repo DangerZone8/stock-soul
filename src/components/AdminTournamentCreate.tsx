@@ -1,13 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Swords } from "lucide-react";
 
-const ADMIN_EMAIL = "rudra.shailendra1@gmail.com";
-
 export function AdminTournamentCreate() {
   const { user } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("Special Tournament");
   const [market, setMarket] = useState<"stock" | "forex" | "both">("both");
@@ -16,7 +15,12 @@ export function AdminTournamentCreate() {
   const [starts, setStarts] = useState(() => new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 16));
   const [ends, setEnds] = useState(() => new Date(Date.now() + 25 * 60 * 60 * 1000).toISOString().slice(0, 16));
 
-  if (user?.email !== ADMIN_EMAIL) return null;
+  useEffect(() => {
+    if (!user) { setIsAdmin(false); return; }
+    (supabase.rpc as any)("is_admin").then(({ data }: any) => setIsAdmin(!!data));
+  }, [user]);
+
+  if (!isAdmin) return null;
 
   const create = async () => {
     const { data, error } = await supabase.rpc("create_tournament", {

@@ -91,13 +91,32 @@ export function CopyTradingTab({ market = "all" }: { market?: "stock" | "forex" 
   const copyOne = async (item: FeedItem) => {
     setBusy(item.trade_id);
     const price = await fetchLivePrice(item.symbol) ?? item.price;
-    const { data, error } = await supabase.rpc("copy_trade", { p_source: item.trade_id, p_price: price });
-    setBusy(null);
-    if (error || !data?.[0]?.success) {
-      toast({ title: "Copy failed", description: error?.message || data?.[0]?.message, variant: "destructive" });
+    const { data: { session } } = await supabase.auth.getSession();
+    const url = `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/copy-verified-trade`;
+    let respJson: any = null;
+    try {
+      const r = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ source_trade_id: item.trade_id, symbol: item.symbol, price }),
+      });
+      respJson = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(respJson?.error || `Error ${r.status}`);
+    } catch (e: any) {
+      setBusy(null);
+      toast({ title: "Copy failed", description: e.message, variant: "destructive" });
       return;
     }
-    toast({ title: data[0].message });
+    setBusy(null);
+    const row = respJson?.data?.[0];
+    if (!row?.success) {
+      toast({ title: "Copy failed", description: row?.message || "Unknown error", variant: "destructive" });
+      return;
+    }
+    toast({ title: row.message });
     load();
   };
 

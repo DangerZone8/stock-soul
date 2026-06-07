@@ -4,6 +4,7 @@ import { Send, Heart, Sparkles, Bot, Paperclip, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 type KaiaMode = "flirty" | "default" | "savage" | null;
 
@@ -148,18 +149,17 @@ export function DreamGirlChat({ context, portfolio }: { context?: "investor" | "
 
       const body: any = { messages: apiMessages, mode, context, portfolio };
       if (fileInfo) {
-        body.file = {
-          name: fileInfo.name,
-          type: fileInfo.type,
-          data: fileInfo.dataUrl,
-        };
+        body.file = { name: fileInfo.name, type: fileInfo.type, data: fileInfo.dataUrl };
       }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Please sign in to chat with Kaia");
 
       const resp = await fetch(chatUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify(body),
       });
