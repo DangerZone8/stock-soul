@@ -147,9 +147,23 @@ export function CopyTradingTab({ market = "all" }: { market?: "stock" | "forex" 
                     Max {l.max_coins_per_trade} / trade • Stop {l.stop_loss_pct}% • Loss tracked {l.realized_loss.toFixed(2)}
                   </div>
                 </div>
-                <button onClick={() => setEditing(l)} className="text-xs text-primary hover:underline flex items-center gap-1">
-                  <Settings2 className="w-3 h-3" />Risk
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button onClick={() => setEditing(l)} className="text-xs text-primary hover:underline flex items-center gap-1">
+                    <Settings2 className="w-3 h-3" />Risk
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!confirm(`Stop copying @${l.username}?`)) return;
+                      const { error } = await supabase.rpc("remove_copy_leader", { p_leader: l.leader_id });
+                      if (error) { toast({ title: "Failed", description: error.message, variant: "destructive" }); return; }
+                      toast({ title: `Stopped copying @${l.username}` });
+                      load();
+                    }}
+                    className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
+                  >
+                    <UserMinus className="w-3 h-3" />Remove
+                  </button>
+                </div>
               </div>
             ))}
           </div>
