@@ -152,6 +152,84 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          kind: string
+          link: string | null
+          read: boolean
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          link?: string | null
+          read?: boolean
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          link?: string | null
+          read?: boolean
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      price_alerts: {
+        Row: {
+          created_at: string
+          direction: string
+          id: string
+          market: string
+          notify_email: boolean
+          reference_price: number | null
+          symbol: string
+          target_price: number
+          triggered: boolean
+          triggered_at: string | null
+          triggered_price: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          direction: string
+          id?: string
+          market?: string
+          notify_email?: boolean
+          reference_price?: number | null
+          symbol: string
+          target_price: number
+          triggered?: boolean
+          triggered_at?: string | null
+          triggered_price?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          direction?: string
+          id?: string
+          market?: string
+          notify_email?: boolean
+          reference_price?: number | null
+          symbol?: string
+          target_price?: number
+          triggered?: boolean
+          triggered_at?: string | null
+          triggered_price?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           coins: number
@@ -514,6 +592,21 @@ export type Database = {
           success: boolean
         }[]
       }
+      create_price_alert: {
+        Args: {
+          p_direction: string
+          p_market: string
+          p_notify_email: boolean
+          p_reference: number
+          p_symbol: string
+          p_target: number
+        }
+        Returns: {
+          id: string
+          message: string
+          success: boolean
+        }[]
+      }
       create_tournament: {
         Args: {
           p_ends_at: string
@@ -527,6 +620,12 @@ export type Database = {
         Returns: {
           id: string
           message: string
+          success: boolean
+        }[]
+      }
+      delete_price_alert: {
+        Args: { p_id: string }
+        Returns: {
           success: boolean
         }[]
       }
@@ -718,6 +817,12 @@ export type Database = {
           coins: number
           message: string
           success: boolean
+        }[]
+      }
+      mark_notifications_read: {
+        Args: { p_ids?: string[] }
+        Returns: {
+          updated: number
         }[]
       }
       redeem_referral: {

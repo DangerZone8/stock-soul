@@ -17,6 +17,7 @@ import { CandlestickBackground } from "@/components/CandlestickBackground";
 import { Footer } from "@/components/Footer";
 import { FloatingKaia } from "@/components/FloatingKaia";
 import { KaiaTake } from "@/components/KaiaTake";
+import { SetAlertButton } from "@/components/SetAlertButton";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler);
 
@@ -326,6 +327,12 @@ const LiveMarket = () => {
                         <span>{lastUpdated.toLocaleTimeString()}</span>
                       </div>
                     )}
+                    <SetAlertButton
+                      symbol={chartData.symbol}
+                      currentPrice={price}
+                      market={chartData.symbol.endsWith("=X") ? "forex" : chartData.symbol.endsWith("-USD") ? "crypto" : "stock"}
+                      size="sm"
+                    />
                   </div>
                 </div>
               </motion.div>
