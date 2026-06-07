@@ -10,6 +10,7 @@ import { PersonalStats } from "@/components/PersonalStats";
 import { WeeklyChallenge } from "@/components/WeeklyChallenge";
 import { TournamentsTab } from "@/components/TournamentsTab";
 import { AdminTournamentCreate } from "@/components/AdminTournamentCreate";
+import { StreakCard } from "@/components/StreakCard";
 
 const Index = () => {
   return (
@@ -19,6 +20,7 @@ const Index = () => {
       <Navbar />
       <HeroSection />
       <PersonalStats />
+      <StreakCard />
       <WeeklyChallenge />
       <section className="container mx-auto px-4 py-8 max-w-6xl space-y-4">
         <AdminTournamentCreate />

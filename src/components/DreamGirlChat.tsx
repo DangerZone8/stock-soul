@@ -287,6 +287,24 @@ export function DreamGirlChat({ context, portfolio }: { context?: "investor" | "
             Select a mode to start chatting
           </p>
         )}
+        {mode && (
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {[
+              { label: "📊 Explain a stock", text: "Explain why " },
+              { label: "💱 Explain a forex pair", text: "Why is the forex pair " },
+              { label: "🔍 Why is it moving?", text: "Why is " },
+              { label: "🎯 Buy or sell?", text: "Should I buy or sell " },
+            ].map(q => (
+              <button
+                key={q.label}
+                onClick={() => setInput(q.text)}
+                className="text-[10px] px-2 py-1 rounded-full bg-muted/40 border border-border/30 text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
+              >
+                {q.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Messages */}
