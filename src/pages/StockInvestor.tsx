@@ -14,6 +14,8 @@ import { toast } from "@/hooks/use-toast";
 import { FriendsTab, ProfileTab, UserDialog } from "@/components/SocialPanel";
 import { FloatingKaia } from "@/components/FloatingKaia";
 import { KaiaTake } from "@/components/KaiaTake";
+import { SetAlertButton } from "@/components/SetAlertButton";
+import { AlertsManager } from "@/components/AlertsManager";
 import { CopyTradingTab } from "@/components/CopyTradingTab";
 import { TournamentsTab } from "@/components/TournamentsTab";
 import { UserCircle, Swords } from "lucide-react";
@@ -381,6 +383,7 @@ const StockInvestor = () => {
                     className="h-10 px-5 rounded-lg bg-red-500 text-white font-semibold hover:bg-red-600 disabled:opacity-60 flex items-center justify-center gap-2">
                     <TrendingDown className="w-4 h-4" /> Sell
                   </button>
+                  <SetAlertButton symbol={quote!.symbol} currentPrice={price} market="stock" size="md" />
                 </div>
               </motion.div>
             )}

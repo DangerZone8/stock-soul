@@ -9,6 +9,8 @@ import { CandlestickBackground } from "@/components/CandlestickBackground";
 import { Footer } from "@/components/Footer";
 import { FloatingKaia } from "@/components/FloatingKaia";
 import { KaiaTake } from "@/components/KaiaTake";
+import { SetAlertButton } from "@/components/SetAlertButton";
+import { AlertsManager } from "@/components/AlertsManager";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { FriendsTab, ProfileTab, UserDialog } from "@/components/SocialPanel";
 import { CopyTradingTab } from "@/components/CopyTradingTab";
@@ -449,6 +451,7 @@ const ForexInvestor = () => {
                     className="h-10 px-5 rounded-lg bg-red-500 text-white font-semibold hover:bg-red-600 disabled:opacity-60 flex items-center justify-center gap-2">
                     <TrendingDown className="w-4 h-4" /> Sell
                   </button>
+                  <SetAlertButton symbol={quote!.symbol} currentPrice={price} market="forex" size="md" />
                 </div>
               </motion.div>
             )}
