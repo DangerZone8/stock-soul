@@ -481,6 +481,7 @@ export type Database = {
           claimed: boolean
           coins: number
           message: string
+          streak: number
         }[]
       }
       compute_league: { Args: { p_net_profit: number }; Returns: string }
