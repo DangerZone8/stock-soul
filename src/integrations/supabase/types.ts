@@ -351,6 +351,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       waitlist: {
         Row: {
           created_at: string
@@ -485,8 +506,8 @@ export type Database = {
         }[]
       }
       compute_league: { Args: { p_net_profit: number }; Returns: string }
-      copy_trade: {
-        Args: { p_price: number; p_source: string }
+      copy_trade_internal: {
+        Args: { p_price: number; p_source: string; p_user: string }
         Returns: {
           coins: number
           message: string
@@ -683,6 +704,13 @@ export type Database = {
           username: string
         }[]
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_admin: { Args: never; Returns: boolean }
       join_tournament: {
         Args: { p_id: string }
@@ -738,6 +766,7 @@ export type Database = {
       week_monday: { Args: { d: string }; Returns: string }
     }
     Enums: {
+      app_role: "admin" | "moderator" | "user"
       tournament_kind: "daily" | "weekly" | "custom"
       tournament_market: "stock" | "forex" | "both"
     }
@@ -867,6 +896,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "moderator", "user"],
       tournament_kind: ["daily", "weekly", "custom"],
       tournament_market: ["stock", "forex", "both"],
     },
