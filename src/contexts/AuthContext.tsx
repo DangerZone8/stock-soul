@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
-import type { Session, User } from "@supabase/supabase-js";
+import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from "react";
+import type { Session, User, RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -34,6 +34,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   const fetchProfile = useCallback(async (uid: string) => {
     const { data } = await supabase.from("profiles").select("*").eq("id", uid).maybeSingle();
@@ -77,13 +78,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Realtime profile updates so coin balance stays in sync
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      // Clean up existing channel when user logs out
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+      return;
+    }
+    // Clean up any existing channel first
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
     const ch = supabase
       .channel(`profile-${user.id}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${user.id}` },
         (payload) => setProfile(payload.new as Profile))
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          channelRef.current = ch;
+        }
+      });
+    return () => {
+      if (channelRef.current === ch) {
+        supabase.removeChannel(ch);
+        channelRef.current = null;
+      }
+    };
   }, [user]);
 
   const signUp = async (email: string, password: string, username?: string) => {

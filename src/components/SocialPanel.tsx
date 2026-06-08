@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { Search, UserPlus, Check, MessageCircle, Heart, Send, X, Loader2, TrendingUp, TrendingDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +20,7 @@ export function FriendsTab({ onOpenUser }: { onOpenUser: (id: string, username: 
   const [searching, setSearching] = useState(false);
   const [leaderKind, setLeaderKind] = useState<"coins" | "profit">("coins");
   const [friendBoard, setFriendBoard] = useState<{ rank: number; user_id: string; username: string; coins: number; net_profit: number }[]>([]);
+  const friendChannelRef = useRef<RealtimeChannel | null>(null);
 
   const loadFriends = useCallback(async () => {
     const { data } = await supabase.rpc("get_friendships");
@@ -34,15 +36,34 @@ export function FriendsTab({ onOpenUser }: { onOpenUser: (id: string, username: 
 
   // Realtime: refresh friend list when someone sends/accepts a request
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      if (friendChannelRef.current) {
+        supabase.removeChannel(friendChannelRef.current);
+        friendChannelRef.current = null;
+      }
+      return;
+    }
+    if (friendChannelRef.current) {
+      supabase.removeChannel(friendChannelRef.current);
+    }
     const ch = supabase.channel(`friendships-${user.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "friendships" }, () => {
         loadFriends();
         loadFriendBoard(leaderKind);
-      }).subscribe();
+      }).subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          friendChannelRef.current = ch;
+        }
+      });
     // Safety poll every 8s in case realtime drops
     const poll = setInterval(loadFriends, 8000);
-    return () => { supabase.removeChannel(ch); clearInterval(poll); };
+    return () => {
+      if (friendChannelRef.current === ch) {
+        supabase.removeChannel(ch);
+        friendChannelRef.current = null;
+      }
+      clearInterval(poll);
+    };
   }, [user, loadFriends, loadFriendBoard, leaderKind]);
 
   useEffect(() => {
@@ -207,6 +228,7 @@ export function UserDialog({ userId, username, open, onClose }: { userId: string
   const [messages, setMessages] = useState<DM[]>([]);
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const dmChannelRef = useRef<RealtimeChannel | null>(null);
 
   const load = useCallback(async () => {
     if (!userId) return;
@@ -233,7 +255,16 @@ export function UserDialog({ userId, username, open, onClose }: { userId: string
   useEffect(() => { if (open && tab === "chat") loadMessages(); }, [open, tab, loadMessages]);
 
   useEffect(() => {
-    if (!open || !user || !userId) return;
+    if (!open || !user || !userId) {
+      if (dmChannelRef.current) {
+        supabase.removeChannel(dmChannelRef.current);
+        dmChannelRef.current = null;
+      }
+      return;
+    }
+    if (dmChannelRef.current) {
+      supabase.removeChannel(dmChannelRef.current);
+    }
     const ch = supabase.channel(`dm-${user.id}-${userId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "direct_messages" }, (payload) => {
         const m = payload.new as DM;
@@ -241,8 +272,17 @@ export function UserDialog({ userId, username, open, onClose }: { userId: string
           setMessages(prev => [...prev, m]);
           setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }), 50);
         }
-      }).subscribe();
-    return () => { supabase.removeChannel(ch); };
+      }).subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          dmChannelRef.current = ch;
+        }
+      });
+    return () => {
+      if (dmChannelRef.current === ch) {
+        supabase.removeChannel(ch);
+        dmChannelRef.current = null;
+      }
+    };
   }, [open, user, userId]);
 
   const toggleFollow = async () => {
