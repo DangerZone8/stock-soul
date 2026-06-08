@@ -1,42 +1,33 @@
 import { motion } from "framer-motion";
-import { MessageSquare, TrendingUp, Globe, Trophy, Flame, Crown, HelpCircle, X, Coins } from "lucide-react";
+import { MessageSquare, Sun, TrendingUp, Lightbulb, HelpCircle, X } from "lucide-react";
 import { useState } from "react";
 
 const STEPS = [
   {
-    icon: TrendingUp,
-    title: "Stock Investor",
-    desc: "Trade stocks & crypto (NVDA, BTC-USD, RELIANCE.NS) with virtual coins. Live prices, real charts.",
-  },
-  {
-    icon: Globe,
-    title: "Forex Investor",
-    desc: "Trade any currency pair — EUR/USD, USD/INR, GBP/JPY, AUD/CAD and more. Same coins, same leaderboard.",
-  },
-  {
-    icon: Flame,
-    title: "Weekly Challenge (Optional)",
-    desc: "Pay 50 coins to opt-in Mon–Fri. Top earner across Stocks + Forex wins +250 bonus coins and a feature on Home.",
-  },
-  {
-    icon: Crown,
-    title: "Leagues",
-    desc: "Climb from Rookie → Trader → Shark → Whale → Titan as your net profit grows. Your tier updates automatically.",
-  },
-  {
     icon: MessageSquare,
-    title: "Ask Kaia",
-    desc: "Floating chat on every trading page. She fetches live prices, gives clear buy/sell takes — no jargon.",
+    title: "Talk to Kaia",
+    desc: "Ask anything about stocks, crypto, or market news. She's always online.",
   },
   {
-    icon: Coins,
-    title: "Earn Free Coins",
-    desc: "Claim +250 coins daily. Refer friends for +150 each. Win the weekly challenge for +250 more.",
+    icon: Sun,
+    title: "Switch Themes",
+    desc: "Use the sun/moon toggle in the top-right to flip between Light and Dark Mode.",
+  },
+  {
+    icon: TrendingUp,
+    title: "Get Live Prices",
+    desc: "Kaia fetches fresh data from Yahoo Finance — never outdated, never guessed.",
+  },
+  {
+    icon: Lightbulb,
+    title: "Ask for Suggestions",
+    desc: "Kaia gives her own take with clear reasons — hold, buy, or watch.",
   },
 ];
 
 export function QuickGuide() {
   const [dismissed, setDismissed] = useState(false);
+
   if (dismissed) return null;
 
   return (
@@ -45,7 +36,7 @@ export function QuickGuide() {
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        className="glass-card p-6 sm:p-8 max-w-5xl mx-auto relative"
+        className="glass-card p-6 sm:p-8 max-w-4xl mx-auto relative"
       >
         <button
           onClick={() => setDismissed(true)}
@@ -57,20 +48,22 @@ export function QuickGuide() {
 
         <div className="flex items-center gap-2 mb-2">
           <HelpCircle className="w-4 h-4 text-primary" strokeWidth={1.5} />
-          <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Quick Guide</span>
+          <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+            Quick Guide
+          </span>
         </div>
         <h2 className="text-2xl sm:text-3xl font-semibold tracking-tighter mb-6">
-          How to use <span className="text-primary">StockSoul</span>
+          How to Use <span className="text-primary">StockSoul</span>
         </h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {STEPS.map((step, i) => (
             <motion.div
               key={step.title}
               initial={{ opacity: 0, y: 10 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.06 }}
+              transition={{ delay: i * 0.1 }}
               className="flex gap-4 p-4 rounded-xl bg-secondary/30 border border-border/20"
             >
               <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">

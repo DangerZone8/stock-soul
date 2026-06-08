@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { Search, TrendingUp, TrendingDown, RefreshCw, Clock, DollarSign, BarChart3, Volume2, Sparkles, Newspaper } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, RefreshCw, Clock, DollarSign, BarChart3, Volume2, Sparkles, Heart, Newspaper } from "lucide-react";
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -15,9 +15,7 @@ import {
 import { Navbar } from "@/components/Navbar";
 import { CandlestickBackground } from "@/components/CandlestickBackground";
 import { Footer } from "@/components/Footer";
-import { FloatingKaia } from "@/components/FloatingKaia";
-import { KaiaTake } from "@/components/KaiaTake";
-import { SetAlertButton } from "@/components/SetAlertButton";
+import { DreamGirlChat } from "@/components/DreamGirlChat";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler);
 
@@ -45,7 +43,20 @@ interface ChartData {
   volumes: (number | null)[];
 }
 
+interface KaiaTip {
+  action: "strong_buy" | "buy" | "hold" | "sell" | "strong_sell";
+  confidence?: "high" | "medium" | "low";
+  sentiment: "bullish" | "neutral" | "bearish";
+  entry?: number;
+  stop?: number;
+  target?: number;
+  move_reason: string;
+  take: string;
+  headlines?: string[];
+}
+
 const LIVE_REFRESH_MS = 1000;
+const TIP_REFRESH_MS = 90000;
 const MAX_LIVE_POINTS = 600;
 
 const buildLiveChartData = (incoming: ChartData, previous?: ChartData | null): ChartData => {
@@ -102,8 +113,12 @@ const LiveMarket = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [tip, setTip] = useState<KaiaTip | null>(null);
+  const [tipLoading, setTipLoading] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const tipIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isFetchingRef = useRef(false);
+  const isFetchingTipRef = useRef(false);
 
   const fetchChart = useCallback(async (symbol: string, mode: "initial" | "live" = "live") => {
     if (isFetchingRef.current) return;
@@ -128,7 +143,38 @@ const LiveMarket = () => {
     }
   }, []);
 
+  const fetchTip = useCallback(async (symbol: string, price: number, changePercent: number, currency: string, closes: (number | null)[], volumes: (number | null)[]) => {
+    if (isFetchingTipRef.current) return;
+    if (!Number.isFinite(price) || price <= 0) return;
+    isFetchingTipRef.current = true;
+    setTipLoading(true);
+    try {
+      const cleanCloses = (closes || []).filter((c): c is number => c != null && Number.isFinite(c));
+      const cleanVols = (volumes || []).map((v) => (v == null ? 0 : v));
+      const res = await fetch(
+        `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/kaia-tip`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ symbol, price, changePercent, currency, closes: cleanCloses, volumes: cleanVols }),
+        }
+      );
+      if (!res.ok) throw new Error("tip failed");
+      const data = await res.json();
+      if (!data.error) setTip(data);
+    } catch {
+      /* silent */
+    } finally {
+      setTipLoading(false);
+      isFetchingTipRef.current = false;
+    }
+  }, []);
+
   useEffect(() => {
+    setTip(null);
     fetchChart(activeTicker, "initial");
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => fetchChart(activeTicker, "live"), LIVE_REFRESH_MS);
@@ -136,6 +182,26 @@ const LiveMarket = () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [activeTicker, fetchChart]);
+
+  // Refresh Kaia's tip when chart data updates (throttled)
+  useEffect(() => {
+    if (!chartData) return;
+    const price = chartData.regularMarketPrice;
+    const prev = chartData.previousClose ?? price;
+    const pct = prev > 0 ? ((price - prev) / prev) * 100 : 0;
+    fetchTip(chartData.symbol, price, pct, chartData.currency, chartData.closes, chartData.volumes);
+    if (tipIntervalRef.current) clearInterval(tipIntervalRef.current);
+    tipIntervalRef.current = setInterval(() => {
+      const cur = chartData.regularMarketPrice;
+      const cprev = chartData.previousClose ?? cur;
+      const cpct = cprev > 0 ? ((cur - cprev) / cprev) * 100 : 0;
+      fetchTip(chartData.symbol, cur, cpct, chartData.currency, chartData.closes, chartData.volumes);
+    }, TIP_REFRESH_MS);
+    return () => {
+      if (tipIntervalRef.current) clearInterval(tipIntervalRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chartData?.symbol]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -235,8 +301,20 @@ const LiveMarket = () => {
 
   const totalVolume = validPoints.reduce((s, p) => s + ((p.vol as number) || 0), 0);
 
-
-
+  const actionStyles: Record<string, string> = {
+    strong_buy: "bg-green-500/25 text-green-400 border-green-500/50",
+    buy: "bg-green-500/15 text-green-500 border-green-500/30",
+    hold: "bg-yellow-500/15 text-yellow-500 border-yellow-500/30",
+    sell: "bg-red-500/15 text-red-500 border-red-500/30",
+    strong_sell: "bg-red-500/25 text-red-400 border-red-500/50",
+  };
+  const actionLabels: Record<string, string> = {
+    strong_buy: "Strong Buy",
+    buy: "Buy",
+    hold: "Hold",
+    sell: "Sell",
+    strong_sell: "Strong Sell",
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -255,10 +333,11 @@ const LiveMarket = () => {
           </h1>
           <p className="text-muted-foreground mt-2">Real-time prices, charts & Kaia's smart tips. Auto-updates every second.</p>
         </motion.div>
-        {/* Main content (full width — Kaia is floating) */}
-        <div className="space-y-6">
+
+        {/* Split layout: chart left, Kaia right */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* LEFT: Search + Chart + Tip */}
-          <div className="space-y-6">
+          <div className="lg:col-span-2 space-y-6">
             {/* Search */}
             <motion.form
               initial={{ opacity: 0, y: 10 }}
@@ -327,12 +406,6 @@ const LiveMarket = () => {
                         <span>{lastUpdated.toLocaleTimeString()}</span>
                       </div>
                     )}
-                    <SetAlertButton
-                      symbol={chartData.symbol}
-                      currentPrice={price}
-                      market={chartData.symbol.endsWith("=X") ? "forex" : chartData.symbol.endsWith("-USD") ? "crypto" : "stock"}
-                      size="sm"
-                    />
                   </div>
                 </div>
               </motion.div>
@@ -355,30 +428,102 @@ const LiveMarket = () => {
                 </div>
               )}
               {chartData && !error && (
-                <div className="h-[320px] sm:h-[440px]">
+                <div className="h-[300px] sm:h-[400px]">
                   <Line data={chartConfig} options={chartOptions} />
                 </div>
               )}
             </motion.div>
 
-            {/* Kaia's Take */}
+            {/* Kaia's Tip */}
             {chartData && !error && (
-              <KaiaTake
-                symbol={chartData.symbol}
-                price={chartData.regularMarketPrice}
-                changePercent={chartData.previousClose > 0 ? ((chartData.regularMarketPrice - chartData.previousClose) / chartData.previousClose) * 100 : 0}
-                currency={chartData.currency}
-                closes={chartData.closes}
-                volumes={chartData.volumes}
-                context="live"
-              />
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="glass-card p-5 sm:p-6"
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <h3 className="font-semibold text-sm">Kaia's Take on {chartData.symbol}</h3>
+                  {tipLoading && <RefreshCw className="w-3 h-3 animate-spin text-muted-foreground" />}
+                </div>
+
+                {!tip && !tipLoading && (
+                  <p className="text-sm text-muted-foreground">Analyzing live data...</p>
+                )}
+
+                {tip && (
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${actionStyles[tip.action] || actionStyles.hold}`}>
+                        {actionLabels[tip.action] || tip.action}
+                      </span>
+                      {tip.confidence && (
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium border capitalize ${
+                          tip.confidence === "high" ? "bg-primary/15 text-primary border-primary/30" :
+                          tip.confidence === "medium" ? "bg-secondary/50 text-foreground border-border/40" :
+                          "bg-muted/40 text-muted-foreground border-border/30"
+                        }`}>
+                          Confidence: {tip.confidence}
+                        </span>
+                      )}
+                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-secondary/50 border border-border/40 text-muted-foreground capitalize">
+                        Sentiment: {tip.sentiment}
+                      </span>
+                    </div>
+                    {(tip.entry != null || tip.stop != null || tip.target != null) && (
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div className="rounded-lg border border-border/40 bg-secondary/30 p-2">
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono">Entry</div>
+                          <div className="font-mono font-semibold text-foreground">{tip.entry?.toFixed(2) ?? "—"}</div>
+                        </div>
+                        <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-2">
+                          <div className="text-[10px] uppercase tracking-wider text-red-500/80 font-mono">Stop</div>
+                          <div className="font-mono font-semibold text-red-500">{tip.stop?.toFixed(2) ?? "—"}</div>
+                        </div>
+                        <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-2">
+                          <div className="text-[10px] uppercase tracking-wider text-green-500/80 font-mono">Target</div>
+                          <div className="font-mono font-semibold text-green-500">{tip.target?.toFixed(2) ?? "—"}</div>
+                        </div>
+                      </div>
+                    )}
+                    <p className="text-sm text-foreground leading-relaxed">{tip.take}</p>
+                    <div className="text-xs text-muted-foreground border-t border-border/30 pt-2">
+                      <span className="font-semibold text-foreground">Why it's moving: </span>{tip.move_reason}
+                    </div>
+                    {tip.headlines && tip.headlines.length > 0 && (
+                      <div className="pt-2 border-t border-border/30">
+                        <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground mb-2">
+                          <Newspaper className="w-3 h-3" /> Latest headlines
+                        </div>
+                        <ul className="space-y-1">
+                          {tip.headlines.slice(0, 4).map((h, i) => (
+                            <li key={i} className="text-xs text-muted-foreground leading-relaxed">• {h}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </motion.div>
             )}
           </div>
+
+          {/* RIGHT: Kaia Chat */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="lg:col-span-1"
+          >
+            <div className="lg:sticky lg:top-20">
+              <div className="flex items-center gap-2 mb-3">
+                <Heart className="w-4 h-4 text-primary" />
+                <h2 className="font-semibold text-sm">Chat with Kaia</h2>
+              </div>
+              <DreamGirlChat />
+            </div>
+          </motion.div>
         </div>
       </div>
-
-      <FloatingKaia context="live" />
-
 
       <Footer />
     </div>

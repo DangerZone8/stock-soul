@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -368,33 +367,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Require a valid signed-in user — these endpoints consume paid AI credits.
-  const authHeader = req.headers.get("Authorization") ?? "";
-  if (!authHeader.startsWith("Bearer ")) {
-    return new Response(JSON.stringify({ error: "Sign in to chat with Kaia" }), {
-      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-  try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-    const { data: { user }, error } = await userClient.auth.getUser();
-    if (error || !user) {
-      return new Response(JSON.stringify({ error: "Sign in to chat with Kaia" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-  } catch {
-    return new Response(JSON.stringify({ error: "Authentication failed" }), {
-      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  // Per-IP soft rate-limit on top of auth
+  // Rate limit by IP
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
     req.headers.get("cf-connecting-ip") ||
@@ -491,11 +464,10 @@ serve(async (req) => {
       : context === "live"
       ? "\n\nCONTEXT: User is on the Live Market page — speak normally about buy/sell with real prices."
       : "";
-    const featuresNote = "\n\nNEW FEATURES you can guide users about: (1) Copy Trading tab — users follow top traders and tap 'Copy' to mirror a specific trade with their own coins (risk settings: max coins per trade, stop-loss %). (2) Tournaments tab — daily (100 coin entry) and weekly (250 coin entry) auto-running tournaments plus admin specials; top 3 split the prize pool 50/30/20 based on profit during the window. Both work in Stock Investor and Forex Investor.";
     const portfolioNote = portfolio && typeof portfolio === "string" && portfolio.length > 0
       ? `\n\nUser Portfolio (use this when they ask about their portfolio, profile, profit, or trades):\n${portfolio.slice(0, 2000)}`
       : "";
-    const systemMessage = promptMap[mode] + realTimeContext + fileContext + contextNote + featuresNote + portfolioNote;
+    const systemMessage = promptMap[mode] + realTimeContext + fileContext + contextNote + portfolioNote;
 
     // Build messages for API - use vision if image attached
     const apiMessages: any[] = [{ role: "system", content: systemMessage }];

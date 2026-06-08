@@ -3,11 +3,11 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { DomainChangePopup } from "@/components/DomainChangePopup";
 import Index from "./pages/Index.tsx";
 import DreamGirl from "./pages/DreamGirl.tsx";
 import LiveMarket from "./pages/LiveMarket.tsx";
 import StockInvestor from "./pages/StockInvestor.tsx";
-import ForexInvestor from "./pages/ForexInvestor.tsx";
 import Auth from "./pages/Auth.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -17,6 +17,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
+      <DomainChangePopup />
       <BrowserRouter>
         <AuthProvider>
           <Routes>
@@ -25,7 +26,6 @@ const App = () => (
             <Route path="/dream-girl" element={<DreamGirl />} />
             <Route path="/live" element={<LiveMarket />} />
             <Route path="/investor" element={<StockInvestor />} />
-            <Route path="/forex" element={<ForexInvestor />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

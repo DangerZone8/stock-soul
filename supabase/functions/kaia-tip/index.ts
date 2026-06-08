@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -107,31 +106,6 @@ function computeTechnicals(closes: number[], volumes: number[]) {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const authHeader = req.headers.get("Authorization") ?? "";
-  if (!authHeader.startsWith("Bearer ")) {
-    return new Response(JSON.stringify({ error: "Sign in to use Kaia" }), {
-      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-  try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-    const { data: { user }, error } = await userClient.auth.getUser();
-    if (error || !user) {
-      return new Response(JSON.stringify({ error: "Sign in to use Kaia" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-  } catch {
-    return new Response(JSON.stringify({ error: "Authentication failed" }), {
-      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
     req.headers.get("cf-connecting-ip") || "unknown";
   if (!checkRateLimit(ip)) {
@@ -141,7 +115,7 @@ serve(async (req) => {
   }
 
   try {
-    const { symbol, price, changePercent, currency, closes, volumes, context, label } = await req.json();
+    const { symbol, price, changePercent, currency, closes, volumes } = await req.json();
     if (!symbol || typeof symbol !== "string" || !/^[A-Za-z0-9.\-=^]{1,20}$/.test(symbol)) {
       return new Response(JSON.stringify({ error: "Invalid symbol" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -157,42 +131,40 @@ serve(async (req) => {
       ? `Latest headlines about ${symbol}:\n- ${headlines.join("\n- ")}`
       : `No fresh headlines fetched for ${symbol}.`;
 
-    // Internal technicals for the model — never surfaced to the user verbatim
-    const techBlock = tech ? `Internal numbers (do NOT mention RSI/SMA/momentum % in your reply):
-- Last: ${tech.last} | Day change: ${tech.sessionPct}% | 20-bar momentum: ${tech.momentumPct}%
-- Day High/Low: ${tech.high} / ${tech.low}
-- Short avg (SMA10): ${tech.sma10} | Mid avg (SMA30): ${tech.sma30} | Long avg (SMA50): ${tech.sma50}
-- RSI(14): ${tech.rsi} | Volume trend: ${tech.volTrend}` : "Not enough chart data yet.";
+    const techBlock = tech ? `Technicals (computed from live chart):
+- Last: ${tech.last} | Session change: ${tech.sessionPct}% | Momentum(20-bar): ${tech.momentumPct}%
+- Session High/Low: ${tech.high} / ${tech.low}
+- SMA10: ${tech.sma10} | SMA30: ${tech.sma30} | SMA50: ${tech.sma50}
+- RSI(14): ${tech.rsi} | Volume trend: ${tech.volTrend}
+- Points used: ${tech.points}` : "Technicals: not enough chart data.";
 
-    const isInvestor = context === "investor";
-    const moneyWord = isInvestor ? "credits" : "money";
+    const systemPrompt = `You are Kaia, the sharp, decisive market analyst of Rudra's Empire. You give bold, accurate, ACTIONABLE trading calls based on real data — never default to "hold" unless signals are genuinely mixed.
 
-    const systemPrompt = `You are Kaia, a friendly market analyst for "Stock Empire". You speak in PLAIN, EVERYDAY language so a complete beginner can act on your call.
+Decision framework:
+- STRONG BUY: price making higher highs AND momentum > +1% AND (RSI 50-70 or rising) AND volume rising. Or strong bullish news catalyst.
+- BUY: uptrend intact, price > SMA10 > SMA30, mild positive momentum.
+- HOLD: only when signals genuinely conflict (e.g. mixed momentum, RSI neutral 45-55, flat volume, no catalyst).
+- SELL: downtrend, price < SMA10 < SMA30, momentum negative.
+- STRONG SELL: lower lows AND momentum < -1% AND (RSI < 40 or falling) AND volume rising on red. Or strong bearish news catalyst.
 
-HARD RULES — never break these:
-1. NO jargon. Never say RSI, SMA, MACD, momentum %, bollinger, oscillator, breakout, resistance, support level, candlestick, technicals, indicators, etc.
-2. Use simple words: "the price is going up", "it's been falling all day", "buyers are stepping in", "people are dumping it", "today's high", "today's low".
-3. Keep "take" to 2 short sentences max. A 10-year-old should understand.
-4. Always sound decisive. Pick one of: strong_buy, buy, hold, sell, strong_sell — don't default to hold unless data is genuinely flat.
-5. ${isInvestor ? `This is a gamified simulator — refer to "${moneyWord}" not real dollars. Tell them this is a practice call.` : `This is real market data. Remind them it's not financial advice.`}
-6. "move_reason" = one sentence saying WHY the price is moving (news / earnings / general buying / general selling / waiting for catalyst).
-7. Entry/stop/target MUST be real numbers near the current price, derived from today's high/low and the short average.
-8. Confidence: high = price + news + volume all agree. medium = 2 of 3 agree. low = mixed signals.
+Confidence:
+- high: multiple signals align (price + momentum + volume + news).
+- medium: 2 of 3 main signals align.
+- low: signals weak or conflicting (often pairs with hold).
 
-How to decide the call:
-- BUY / STRONG BUY → price is climbing today, sitting above its short average, buyers are active.
-- HOLD → price is barely moving, no clear winner today.
-- SELL / STRONG SELL → price is falling today, sitting below its short average, sellers are active.`;
+Price targets MUST be derived from the actual data: buy entry near current support (recent low / SMA), stop below it, target near recent high or +5-10% based on momentum. Always cite specific numbers from the technicals provided.
 
-    const userPrompt = `Stock/Pair: ${label || symbol} (${symbol})
-Current price: ${currency || "$"}${Number(price).toFixed(4)}
-Today's change: ${Number(changePercent).toFixed(2)}%
+Be decisive and SPECIFIC. Different stocks must get different calls — vary based on the actual data, not a default.`;
+
+    const userPrompt = `Ticker: ${symbol}
+Current price: ${currency || "$"}${Number(price).toFixed(2)}
+Today change: ${Number(changePercent).toFixed(2)}%
 
 ${techBlock}
 
 ${newsBlock}
 
-Now write your call in PLAIN ENGLISH. No trading jargon. 2 short sentences for the "take". Beginner-friendly.`;
+Make the call now: strong_buy, buy, hold, sell, or strong_sell. Set confidence honestly. Provide entry/stop/target derived from the technicals above. Write a sharp 2-3 sentence take a real trader can act on.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -214,11 +186,11 @@ Now write your call in PLAIN ENGLISH. No trading jargon. 2 short sentences for t
                 action: { type: "string", enum: ["strong_buy", "buy", "hold", "sell", "strong_sell"] },
                 confidence: { type: "string", enum: ["high", "medium", "low"] },
                 sentiment: { type: "string", enum: ["bullish", "neutral", "bearish"] },
-                entry: { type: "number", description: "Suggested buy-in price near current price." },
-                stop: { type: "number", description: "Price at which to exit to limit losses." },
-                target: { type: "number", description: "Realistic profit-taking price." },
-                move_reason: { type: "string", description: "ONE plain-English sentence on why the price is moving. No jargon." },
-                take: { type: "string", description: "TWO short plain-English sentences a beginner can act on. NO jargon (no RSI/SMA/momentum/technicals)." },
+                entry: { type: "number", description: "Suggested entry price." },
+                stop: { type: "number", description: "Stop-loss price." },
+                target: { type: "number", description: "Profit target price." },
+                move_reason: { type: "string", description: "Why the stock is moving (news/earnings/macro/trend)." },
+                take: { type: "string", description: "2-3 sentence smart recommendation in Kaia's voice." },
               },
               required: ["action", "confidence", "sentiment", "entry", "stop", "target", "move_reason", "take"],
               additionalProperties: false,

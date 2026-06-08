@@ -4,7 +4,6 @@ import { Send, Heart, Sparkles, Bot, Paperclip, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 type KaiaMode = "flirty" | "default" | "savage" | null;
 
@@ -149,17 +148,18 @@ export function DreamGirlChat({ context, portfolio }: { context?: "investor" | "
 
       const body: any = { messages: apiMessages, mode, context, portfolio };
       if (fileInfo) {
-        body.file = { name: fileInfo.name, type: fileInfo.type, data: fileInfo.dataUrl };
+        body.file = {
+          name: fileInfo.name,
+          type: fileInfo.type,
+          data: fileInfo.dataUrl,
+        };
       }
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Please sign in to chat with Kaia");
 
       const resp = await fetch(chatUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
         body: JSON.stringify(body),
       });
@@ -247,7 +247,7 @@ export function DreamGirlChat({ context, portfolio }: { context?: "investor" | "
   ];
 
   return (
-    <div className="glass-card flex flex-col h-full w-full max-w-2xl">
+    <div className="glass-card flex flex-col h-[calc(100vh-16rem)] sm:h-[600px] max-w-2xl w-full">
       {/* Header */}
       <div className="flex items-center gap-3 p-3 sm:p-4 border-b border-border/30">
         <div className="relative">
@@ -286,24 +286,6 @@ export function DreamGirlChat({ context, portfolio }: { context?: "investor" | "
           <p className="text-[10px] text-muted-foreground text-center mt-1.5 font-mono animate-pulse">
             Select a mode to start chatting
           </p>
-        )}
-        {mode && (
-          <div className="flex flex-wrap gap-1.5 mt-2">
-            {[
-              { label: "📊 Explain a stock", text: "Explain why " },
-              { label: "💱 Explain a forex pair", text: "Why is the forex pair " },
-              { label: "🔍 Why is it moving?", text: "Why is " },
-              { label: "🎯 Buy or sell?", text: "Should I buy or sell " },
-            ].map(q => (
-              <button
-                key={q.label}
-                onClick={() => setInput(q.text)}
-                className="text-[10px] px-2 py-1 rounded-full bg-muted/40 border border-border/30 text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
-              >
-                {q.label}
-              </button>
-            ))}
-          </div>
         )}
       </div>
 

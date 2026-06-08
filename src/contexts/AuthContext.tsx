@@ -36,15 +36,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async (uid: string) => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("id, display_name, username, referral_code, referred_by, net_profit, coins, last_reward_date, username_changes")
-      .eq("id", uid)
-      .maybeSingle();
-    if (data) {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      setProfile({ ...(data as any), email: authUser?.email ?? null } as Profile);
-    }
+    const { data } = await supabase.from("profiles").select("*").eq("id", uid).maybeSingle();
+    if (data) setProfile(data as Profile);
   }, []);
 
   const claimDaily = useCallback(async () => {

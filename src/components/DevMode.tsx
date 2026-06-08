@@ -4,15 +4,11 @@ import { Code2, X, Check, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-// Dev Mode is a local-only authoring tool. It must never ship to production
-// builds — the entire component short-circuits outside `import.meta.env.DEV`.
-const IS_DEV = import.meta.env.DEV;
+const DEV_EMAIL = "rudra.shailendra1@gmail.com";
 
 type DevState = "idle" | "form" | "dev-active" | "waitlist-done";
 
 export function DevMode() {
-  if (!IS_DEV) return null;
-
   const [state, setState] = useState<DevState>("idle");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -23,7 +19,7 @@ export function DevMode() {
     if (!trimmed) return;
     setLoading(true);
 
-    if (IS_DEV) {
+    if (trimmed === DEV_EMAIL) {
       // Activate dev mode
       setState("dev-active");
       // Make ALL visible text elements editable across all pages
