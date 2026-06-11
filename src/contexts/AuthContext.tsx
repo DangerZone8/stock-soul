@@ -35,16 +35,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const realtimeSetupDoneRef = useRef(false);
 
   const fetchProfile = useCallback(async (uid: string) => {
-    const { data } = await supabase.from("profiles").select("*").eq("id", uid).maybeSingle();
-    if (data) setProfile(data as Profile);
+    try {
+      const { data, error } = await supabase.from("profiles").select("*").eq("id", uid).maybeSingle();
+      if (error) {
+        console.error("Error fetching profile:", error);
+        return;
+      }
+      if (data) setProfile(data as Profile);
+    } catch (err) {
+      console.error("Exception fetching profile:", err);
+    }
   }, []);
 
   const claimDaily = useCallback(async () => {
-    const { data, error } = await supabase.rpc("claim_daily_reward");
-    if (!error && data && data[0]?.claimed) {
-      toast({ title: "Daily reward!", description: data[0].message });
+    try {
+      const { data, error } = await supabase.rpc("claim_daily_reward");
+      if (error) {
+        console.error("Error claiming daily reward:", error);
+        return;
+      }
+      if (data && data[0]) {
+        const result = data[0];
+        if (result.claimed) {
+          toast({ title: "Daily reward!", description: result.message });
+          // Update profile coins immediately from the response
+          setProfile(prev => prev ? { ...prev, coins: result.coins } : null);
+        } else {
+          // Already claimed today - silently skip or show message
+          console.log("Daily reward already claimed:", result.message);
+        }
+      }
+    } catch (err) {
+      console.error("Exception claiming daily reward:", err);
     }
   }, []);
 
@@ -52,31 +77,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (user) await fetchProfile(user.id);
   }, [user, fetchProfile]);
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      if (s?.user) {
-        setTimeout(async () => {
-          await claimDaily();
-          await fetchProfile(s.user.id);
-        }, 0);
-      } else {
-        setProfile(null);
-      }
-    });
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      if (s?.user) {
-        claimDaily().then(() => fetchProfile(s.user.id));
-      }
-      setLoading(false);
-    });
-    return () => subscription.unsubscribe();
-  }, [fetchProfile, claimDaily]);
-
-  // Realtime profile updates so coin balance stays in sync
+  // Setup realtime profile updates ONCE per user
   useEffect(() => {
     if (!user) {
       // Clean up existing channel when user logs out
@@ -84,21 +85,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
+      realtimeSetupDoneRef.current = false;
       return;
     }
+
+    // Only setup realtime once per user session
+    if (realtimeSetupDoneRef.current) {
+      return;
+    }
+    realtimeSetupDoneRef.current = true;
+
     // Clean up any existing channel first
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
     }
-    const ch = supabase
-      .channel(`profile-${user.id}`)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${user.id}` },
-        (payload) => setProfile(payload.new as Profile))
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          channelRef.current = ch;
-        }
-      });
+
+    // Create channel with postgres_changes listener BEFORE subscribe
+    const ch = supabase.channel(`profile-${user.id}`);
+    
+    ch.on("postgres_changes", 
+      { 
+        event: "UPDATE", 
+        schema: "public", 
+        table: "profiles", 
+        filter: `id=eq.${user.id}` 
+      },
+      (payload) => {
+        setProfile(payload.new as Profile);
+      }
+    );
+
+    // Now subscribe after listeners are attached
+    ch.subscribe((status) => {
+      if (status === "SUBSCRIBED") {
+        channelRef.current = ch;
+        console.log("Realtime channel subscribed:", `profile-${user.id}`);
+      } else if (status === "CHANNEL_ERROR") {
+        console.error("Realtime channel error:", `profile-${user.id}`);
+      }
+    });
+
     return () => {
       if (channelRef.current === ch) {
         supabase.removeChannel(ch);
@@ -107,23 +133,81 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [user]);
 
-  const signUp = async (email: string, password: string, username?: string) => {
-    const { error } = await supabase.auth.signUp({
-      email, password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/`,
-        data: username ? { username, full_name: username } : undefined,
-      },
+  // Handle auth state changes and claim daily reward
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
+      setSession(s);
+      setUser(s?.user ?? null);
+      if (s?.user) {
+        // Claim daily reward first, then fetch profile
+        (async () => {
+          try {
+            await claimDaily();
+            await fetchProfile(s.user.id);
+          } catch (err) {
+            console.error("Error during login:", err);
+          }
+        })();
+      } else {
+        setProfile(null);
+      }
     });
-    return { error: error?.message ?? null };
+
+    // Also check existing session on mount
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
+      setSession(s);
+      setUser(s?.user ?? null);
+      if (s?.user) {
+        (async () => {
+          try {
+            await claimDaily();
+            await fetchProfile(s.user.id);
+          } catch (err) {
+            console.error("Error during session init:", err);
+          }
+        })();
+      }
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [fetchProfile, claimDaily]);
+
+  const signUp = async (email: string, password: string, username?: string) => {
+    try {
+      const { error } = await supabase.auth.signUp({
+        email, 
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: username ? { username, full_name: username } : undefined,
+        },
+      });
+      return { error: error?.message ?? null };
+    } catch (err) {
+      console.error("Sign up error:", err);
+      return { error: err instanceof Error ? err.message : "Sign up failed" };
+    }
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      return { error: error?.message ?? null };
+    } catch (err) {
+      console.error("Sign in error:", err);
+      return { error: err instanceof Error ? err.message : "Sign in failed" };
+    }
   };
 
-  const signOut = async () => { await supabase.auth.signOut(); };
+  const signOut = async () => {
+    try {
+      realtimeSetupDoneRef.current = false;
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("Sign out error:", err);
+    }
+  };
 
   return (
     <AuthContext.Provider value={{ user, session, profile, loading, refreshProfile, signUp, signIn, signOut }}>
