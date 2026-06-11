@@ -69,15 +69,23 @@ export function FriendsTab({ onOpenUser }: { onOpenUser: (id: string, username: 
     }
     friendshipSetupDoneRef.current = true;
 
+    // CRITICAL: Remove any existing channels with this name
+    const channelName = `friendships-${user.id}`;
+    const existingChannels = supabase.getChannels();
+    const existingChannel = existingChannels.find(ch => ch.topic === channelName || ch.topic === `realtime:${channelName}`);
+    if (existingChannel) {
+      supabase.removeChannel(existingChannel);
+    }
     if (friendChannelRef.current) {
       supabase.removeChannel(friendChannelRef.current);
+      friendChannelRef.current = null;
     }
 
     // Create channel with postgres_changes listeners BEFORE subscribe
-    const ch = supabase.channel(`friendships-${user.id}`);
-    
-    ch.on("postgres_changes", 
-      { event: "*", schema: "public", table: "friendships" }, 
+    const ch = supabase.channel(channelName);
+
+    ch.on("postgres_changes",
+      { event: "*", schema: "public", table: "friendships" },
       () => {
         loadFriends();
         loadFriendBoard(leaderKind);
@@ -88,9 +96,6 @@ export function FriendsTab({ onOpenUser }: { onOpenUser: (id: string, username: 
     ch.subscribe((status) => {
       if (status === "SUBSCRIBED") {
         friendChannelRef.current = ch;
-        console.log("Friendships channel subscribed");
-      } else if (status === "CHANNEL_ERROR") {
-        console.error("Friendships channel error");
       }
     });
 
@@ -106,6 +111,7 @@ export function FriendsTab({ onOpenUser }: { onOpenUser: (id: string, username: 
         friendChannelRef.current = null;
       }
       clearInterval(poll);
+      friendshipSetupDoneRef.current = false;
     };
   }, [user, leaderKind, loadFriends, loadFriendBoard]);
 
@@ -309,6 +315,7 @@ export function UserDialog({ userId, username, open, onClose }: { userId: string
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const dmChannelRef = useRef<RealtimeChannel | null>(null);
+  const dmSetupDoneRef = useRef(false);
 
   const load = useCallback(async () => {
     if (!userId) return;
@@ -352,16 +359,30 @@ export function UserDialog({ userId, username, open, onClose }: { userId: string
         supabase.removeChannel(dmChannelRef.current);
         dmChannelRef.current = null;
       }
+      dmSetupDoneRef.current = false;
       return;
+    }
+
+    // Only setup once per dialog open
+    if (dmSetupDoneRef.current) return;
+    dmSetupDoneRef.current = true;
+
+    // CRITICAL: Remove any existing channels with this name
+    const channelName = `dm-${user.id}-${userId}`;
+    const existingChannels = supabase.getChannels();
+    const existingChannel = existingChannels.find(ch => ch.topic === channelName || ch.topic === `realtime:${channelName}`);
+    if (existingChannel) {
+      supabase.removeChannel(existingChannel);
     }
     if (dmChannelRef.current) {
       supabase.removeChannel(dmChannelRef.current);
+      dmChannelRef.current = null;
     }
 
-    const ch = supabase.channel(`dm-${user.id}-${userId}`);
-    
-    ch.on("postgres_changes", 
-      { event: "INSERT", schema: "public", table: "direct_messages" }, 
+    const ch = supabase.channel(channelName);
+
+    ch.on("postgres_changes",
+      { event: "INSERT", schema: "public", table: "direct_messages" },
       (payload) => {
         const m = payload.new as DM;
         if ((m.sender_id === user.id && m.recipient_id === userId) || (m.sender_id === userId && m.recipient_id === user.id)) {
@@ -382,6 +403,7 @@ export function UserDialog({ userId, username, open, onClose }: { userId: string
         supabase.removeChannel(ch);
         dmChannelRef.current = null;
       }
+      dmSetupDoneRef.current = false;
     };
   }, [open, user, userId]);
 

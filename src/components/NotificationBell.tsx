@@ -69,14 +69,24 @@ export function NotificationBell() {
       return;
     }
 
-    // Prevent duplicate setup
+    // Prevent duplicate setup in React Strict Mode
     if (realtimeSetupRef.current) return;
     realtimeSetupRef.current = true;
 
     loadNotifications();
 
+    // CRITICAL: Remove any existing channel with this name first
+    // Supabase caches channels by name and returns the same instance
+    const channelName = `realtime:notif-${user.id}`;
+    const existingChannels = supabase.getChannels();
+    const existingChannel = existingChannels.find(ch => ch.topic === channelName || ch.topic === `realtime:${channelName}`);
+    if (existingChannel) {
+      supabase.removeChannel(existingChannel);
+    }
+
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
     }
 
     // Attach ALL listeners BEFORE subscribe
@@ -104,6 +114,7 @@ export function NotificationBell() {
         supabase.removeChannel(ch);
         channelRef.current = null;
       }
+      realtimeSetupRef.current = false;
     };
   }, [user]);
 

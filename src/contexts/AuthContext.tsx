@@ -95,20 +95,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     realtimeSetupDoneRef.current = true;
 
-    // Clean up any existing channel first
+    // CRITICAL: Remove any existing channels with this name
+    // Supabase caches channels by name and reuses them
+    const channelName = `profile-${user.id}`;
+    const existingChannels = supabase.getChannels();
+    const existingChannel = existingChannels.find(ch => ch.topic === channelName || ch.topic === `realtime:${channelName}`);
+    if (existingChannel) {
+      supabase.removeChannel(existingChannel);
+    }
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
     }
 
     // Create channel with postgres_changes listener BEFORE subscribe
-    const ch = supabase.channel(`profile-${user.id}`);
-    
-    ch.on("postgres_changes", 
-      { 
-        event: "UPDATE", 
-        schema: "public", 
-        table: "profiles", 
-        filter: `id=eq.${user.id}` 
+    const ch = supabase.channel(channelName);
+
+    ch.on("postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "profiles",
+        filter: `id=eq.${user.id}`
       },
       (payload) => {
         setProfile(payload.new as Profile);
@@ -119,9 +127,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     ch.subscribe((status) => {
       if (status === "SUBSCRIBED") {
         channelRef.current = ch;
-        console.log("Realtime channel subscribed:", `profile-${user.id}`);
-      } else if (status === "CHANNEL_ERROR") {
-        console.error("Realtime channel error:", `profile-${user.id}`);
       }
     });
 
