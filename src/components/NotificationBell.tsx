@@ -15,21 +15,21 @@ interface Notification {
 }
 
 export function NotificationBell() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const notifChannelRef = useRef<RealtimeChannel | null>(null);
   const realtimeSetupDoneRef = useRef(false);
+  const userIdRef = useRef<string | null>(null);
 
   // Fetch notifications from the database
-  const loadNotifications = useCallback(async () => {
-    if (!user) return;
+  const loadNotifications = useCallback(async (uid: string) => {
     try {
       const { data, error } = await supabase
         .from("notifications")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", uid)
         .order("created_at", { ascending: false })
         .limit(10);
 
@@ -46,32 +46,29 @@ export function NotificationBell() {
     } catch (err) {
       console.error("Exception loading notifications:", err);
     }
-  }, [user]);
+  }, []);
 
   // Mark a notification as read
-  const markAsRead = useCallback(
-    async (notificationId: string) => {
-      try {
-        const { error } = await supabase
-          .from("notifications")
-          .update({ read: true })
-          .eq("id", notificationId);
+  const markAsRead = useCallback(async (notificationId: string) => {
+    try {
+      const { error } = await supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("id", notificationId);
 
-        if (error) {
-          console.error("Error marking notification as read:", error);
-          return;
-        }
-
-        setNotifications((prev) =>
-          prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n))
-        );
-        setUnreadCount((prev) => Math.max(0, prev - 1));
-      } catch (err) {
-        console.error("Exception marking notification as read:", err);
+      if (error) {
+        console.error("Error marking notification as read:", error);
+        return;
       }
-    },
-    []
-  );
+
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n))
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch (err) {
+      console.error("Exception marking notification as read:", err);
+    }
+  }, []);
 
   // Delete a notification
   const deleteNotification = useCallback(async (notificationId: string) => {
@@ -94,91 +91,138 @@ export function NotificationBell() {
 
   // Load notifications on mount and when user changes
   useEffect(() => {
-    loadNotifications();
-  }, [user, loadNotifications]);
+    if (user?.id) {
+      loadNotifications(user.id);
+    }
+  }, [user?.id, loadNotifications]);
 
   // Setup realtime subscription for notifications - ONCE per user
+  // CRITICAL: All .on() calls MUST come before .subscribe()
   useEffect(() => {
-    if (!user) {
-      // Clean up existing channel when user logs out
+    const userId = user?.id;
+
+    // Clean up if user logs out
+    if (!userId) {
       if (notifChannelRef.current) {
         supabase.removeChannel(notifChannelRef.current);
         notifChannelRef.current = null;
       }
       realtimeSetupDoneRef.current = false;
+      userIdRef.current = null;
       return;
     }
 
-    // Only setup realtime once per user session
-    if (realtimeSetupDoneRef.current) {
+    // Check if we already set up for this user in this session
+    if (realtimeSetupDoneRef.current && userIdRef.current === userId) {
       return;
     }
+
+    // If user changed, clean up old channel
+    if (userIdRef.current !== userId && notifChannelRef.current) {
+      supabase.removeChannel(notifChannelRef.current);
+      notifChannelRef.current = null;
+      realtimeSetupDoneRef.current = false;
+    }
+
+    userIdRef.current = userId;
+
+    // Mark setup as in progress
     realtimeSetupDoneRef.current = true;
 
-    // Clean up any existing channel first
-    if (notifChannelRef.current) {
-      supabase.removeChannel(notifChannelRef.current);
-    }
+    // Create channel
+    const ch = supabase.channel(`realtime:notif-${userId}`);
 
-    // Create channel with postgres_changes listener BEFORE subscribe
-    const ch = supabase.channel(`realtime:notif-${user.id}`);
-
-    // Attach all listeners BEFORE calling subscribe()
+    // **CRITICAL: Attach ALL listeners BEFORE calling subscribe()**
+    
+    // Listener 1: New notifications (INSERT)
     ch.on(
       "postgres_changes",
       {
         event: "INSERT",
         schema: "public",
         table: "notifications",
-        filter: `user_id=eq.${user.id}`,
+        filter: `user_id=eq.${userId}`,
       },
       (payload) => {
-        const newNotif = payload.new as Notification;
-        setNotifications((prev) => [newNotif, ...prev]);
-        setUnreadCount((prev) => prev + 1);
+        try {
+          const newNotif = payload.new as Notification;
+          setNotifications((prev) => [newNotif, ...prev]);
+          setUnreadCount((prev) => prev + 1);
 
-        // Show toast for new notification
-        toast({
-          title: newNotif.title,
-          description: newNotif.message,
-        });
+          // Show toast for new notification
+          toast({
+            title: newNotif.title,
+            description: newNotif.message,
+          });
+        } catch (err) {
+          console.error("Error processing INSERT notification:", err);
+        }
       }
     );
 
-    // Also listen for updates (e.g., when a notification is marked as read from another tab)
+    // Listener 2: Updated notifications (UPDATE)
     ch.on(
       "postgres_changes",
       {
         event: "UPDATE",
         schema: "public",
         table: "notifications",
-        filter: `user_id=eq.${user.id}`,
+        filter: `user_id=eq.${userId}`,
       },
       (payload) => {
-        const updatedNotif = payload.new as Notification;
-        setNotifications((prev) =>
-          prev.map((n) => (n.id === updatedNotif.id ? updatedNotif : n))
-        );
+        try {
+          const updatedNotif = payload.new as Notification;
+          setNotifications((prev) =>
+            prev.map((n) => (n.id === updatedNotif.id ? updatedNotif : n))
+          );
+        } catch (err) {
+          console.error("Error processing UPDATE notification:", err);
+        }
       }
     );
 
-    // Now subscribe after all listeners are attached
+    // Listener 3: Deleted notifications (DELETE)
+    ch.on(
+      "postgres_changes",
+      {
+        event: "DELETE",
+        schema: "public",
+        table: "notifications",
+        filter: `user_id=eq.${userId}`,
+      },
+      (payload) => {
+        try {
+          const deletedNotif = payload.old as Notification;
+          setNotifications((prev) =>
+            prev.filter((n) => n.id !== deletedNotif.id)
+          );
+        } catch (err) {
+          console.error("Error processing DELETE notification:", err);
+        }
+      }
+    );
+
+    // **NOW subscribe after all listeners are attached**
     ch.subscribe((status) => {
       if (status === "SUBSCRIBED") {
         notifChannelRef.current = ch;
-        console.log("Notifications realtime channel subscribed");
+        console.log(`✅ Notifications realtime channel subscribed for user ${userId}`);
       } else if (status === "CHANNEL_ERROR") {
-        console.error("Notifications realtime channel error");
+        console.error(`❌ Notifications realtime channel error for user ${userId}`);
+        realtimeSetupDoneRef.current = false;
+      } else if (status === "CLOSED") {
+        console.warn(`⚠️ Notifications realtime channel closed for user ${userId}`);
       }
     });
 
+    // Cleanup function
     return () => {
       if (notifChannelRef.current === ch) {
         supabase.removeChannel(ch);
         notifChannelRef.current = null;
       }
     };
-  }, [user]);
+  }, [user?.id]); // Only depend on user.id
 
   return (
     <div className="relative">
@@ -269,7 +313,11 @@ export function NotificationBell() {
           {notifications.length > 0 && (
             <div className="p-3 border-t border-border/30 bg-background/50 text-center">
               <button
-                onClick={() => loadNotifications()}
+                onClick={() => {
+                  if (user?.id) {
+                    loadNotifications(user.id);
+                  }
+                }}
                 className="text-xs text-primary hover:underline"
               >
                 Refresh
