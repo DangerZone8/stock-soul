@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import { Search, UserPlus, Check, MessageCircle, Heart, Send, X, Loader2, TrendingUp, TrendingDown } from "lucide-react";
+import { Search, UserPlus, Check, MessageCircle, Heart, Send, X, Loader as Loader2, TrendingUp, TrendingDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";

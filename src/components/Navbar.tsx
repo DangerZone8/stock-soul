@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { TrendingUp, Menu, X, BarChart3, Coins, LogOut, LogIn, Briefcase } from "lucide-react";
+import { TrendingUp, Menu, X, ChartBar as BarChart3, Coins, LogOut, LogIn, Briefcase } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
+import { NotificationBell } from "@/components/NotificationBell";
 import { NotificationBell } from "@/components/NotificationBell";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -51,6 +52,7 @@ export function Navbar() {
               </Link>
             );
           })}
+          {user && <NotificationBell />}
           <ThemeToggle />
           <NotificationBell />
           {user && profile && (
@@ -76,6 +78,7 @@ export function Navbar() {
               <Coins className="w-3.5 h-3.5" />
               {Number(profile.coins).toFixed(2)}
             </div>
+          {user && <NotificationBell />}
           )}
           <ThemeToggle />
           <NotificationBell />
