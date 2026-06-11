@@ -9,35 +9,9 @@ type YahooQuote = {
   symbol?: string;
 };
 
-// Simple in-memory per-IP rate limiter (60 req/min — chart endpoint is polled more often)
-const RATE_LIMIT = 60;
-const WINDOW_MS = 60_000;
-const ipHits = new Map<string, { count: number; reset: number }>();
-function rateLimited(ip: string): boolean {
-  const now = Date.now();
-  const rec = ipHits.get(ip);
-  if (!rec || rec.reset < now) {
-    ipHits.set(ip, { count: 1, reset: now + WINDOW_MS });
-    return false;
-  }
-  rec.count++;
-  return rec.count > RATE_LIMIT;
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
-  }
-
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
-    req.headers.get("cf-connecting-ip") ||
-    "unknown";
-  if (rateLimited(ip)) {
-    return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-      status: 429,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
   }
 
   try {

@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { TrendingUp, Menu, X, BarChart3, Coins, LogOut, LogIn, Briefcase, Globe } from "lucide-react";
+import { TrendingUp, Menu, X, ChartBar as BarChart3, Coins, LogOut, LogIn, Briefcase, Globe, Users } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
+import { NotificationBell } from "@/components/NotificationBell";
 import { useAuth } from "@/contexts/AuthContext";
 
 const NAV_ITEMS = [
   { label: "Home", path: "/", icon: TrendingUp },
   { label: "Live Market", path: "/live", icon: BarChart3 },
   { label: "Stock Investor", path: "/investor", icon: Briefcase },
-  { label: "Forex Investor", path: "/forex", icon: Globe },
+  { label: "Forex", path: "/forex", icon: Globe },
+  { label: "Copy Trading", path: "/copy", icon: Users },
 ];
 
 export function Navbar() {
@@ -52,6 +54,7 @@ export function Navbar() {
             );
           })}
           <ThemeToggle />
+          {user && <NotificationBell />}
           {user && profile && (
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-sm font-mono font-semibold">
               <Coins className="w-4 h-4" />
@@ -77,6 +80,7 @@ export function Navbar() {
             </div>
           )}
           <ThemeToggle />
+          {user && <NotificationBell />}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className="p-2.5 rounded-lg text-foreground hover:bg-secondary/50 transition-colors"

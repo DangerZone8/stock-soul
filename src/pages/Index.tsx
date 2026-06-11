@@ -1,13 +1,13 @@
 import { TickerTape } from "@/components/TickerTape";
 import { Navbar } from "@/components/Navbar";
 import { HeroSection } from "@/components/HeroSection";
+import { TrackRecord } from "@/components/TrackRecord";
 import { MarketMood } from "@/components/MarketMood";
 import { QuickGuide } from "@/components/QuickGuide";
 import { CandlestickBackground } from "@/components/CandlestickBackground";
 import { Footer } from "@/components/Footer";
 import { DevMode } from "@/components/DevMode";
-import { PersonalStats } from "@/components/PersonalStats";
-import { WeeklyChallenge } from "@/components/WeeklyChallenge";
+import { HomeUserPanel } from "@/components/HomeUserPanel";
 
 const Index = () => {
   return (
@@ -16,9 +16,9 @@ const Index = () => {
       <TickerTape />
       <Navbar />
       <HeroSection />
-      <PersonalStats />
-      <WeeklyChallenge />
+      <HomeUserPanel />
       <QuickGuide />
+      <TrackRecord />
       <MarketMood />
       <Footer />
       {import.meta.env.DEV && <DevMode />}

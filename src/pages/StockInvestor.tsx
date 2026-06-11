@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, TrendingUp, TrendingDown, RefreshCw, Coins, Briefcase, Trophy, Sparkles, Plus, Minus, Users, Copy, Share2, Crown, Medal } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, RefreshCw, Coins, Briefcase, Trophy, Sparkles, Plus, Minus, Users, Copy, Share2, Crown, Medal, Heart } from "lucide-react";
 import { Line } from "react-chartjs-2";
 import "chart.js/auto";
 import { Navbar } from "@/components/Navbar";
@@ -12,8 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { FriendsTab, ProfileTab, UserDialog } from "@/components/SocialPanel";
-import { FloatingKaia } from "@/components/FloatingKaia";
-import { KaiaTake } from "@/components/KaiaTake";
+import { DreamGirlChat } from "@/components/DreamGirlChat";
 import { UserCircle } from "lucide-react";
 
 const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
@@ -182,14 +181,12 @@ const StockInvestor = () => {
     const q = qtyOverride ?? Number(qty);
     if (!symbol || !price || !q || q <= 0) { toast({ title: "Invalid trade", variant: "destructive" }); return; }
     setBusy(true);
-    const { data: resp, error } = await supabase.functions.invoke("execute-verified-trade", {
-      body: { symbol, currency, type, quantity: q, price },
+    const { data, error } = await supabase.rpc("execute_trade", {
+      p_symbol: symbol, p_currency: currency, p_type: type, p_quantity: q, p_price: price,
     });
     setBusy(false);
-    const data = (resp as any)?.data;
     if (error || !data?.[0]?.success) {
-      const msg = (resp as any)?.error || data?.[0]?.message || error?.message || "Trade failed";
-      toast({ title: "Trade failed", description: msg, variant: "destructive" });
+      toast({ title: "Trade failed", description: data?.[0]?.message || error?.message, variant: "destructive" });
       return;
     }
     const msg = data[0].message as string;
@@ -311,7 +308,7 @@ const StockInvestor = () => {
         <Tabs defaultValue="trade" className="w-full">
           <TabsList className="mb-6 bg-secondary/40 border border-border/30 flex-wrap h-auto">
             <TabsTrigger value="trade" className="gap-1.5"><Briefcase className="w-3.5 h-3.5" />Trade</TabsTrigger>
-            
+            <TabsTrigger value="kaia" className="gap-1.5"><Heart className="w-3.5 h-3.5" />Kaia</TabsTrigger>
             <TabsTrigger value="leaderboard" className="gap-1.5"><Trophy className="w-3.5 h-3.5" />Leaderboard</TabsTrigger>
             <TabsTrigger value="friends" className="gap-1.5"><Users className="w-3.5 h-3.5" />Friends</TabsTrigger>
             <TabsTrigger value="referral" className="gap-1.5"><Sparkles className="w-3.5 h-3.5" />Referral</TabsTrigger>
@@ -376,18 +373,6 @@ const StockInvestor = () => {
                   </button>
                 </div>
               </motion.div>
-            )}
-
-            {quote && (
-              <KaiaTake
-                symbol={quote.symbol}
-                price={quote.regularMarketPrice}
-                changePercent={prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0}
-                currency={currency}
-                closes={quote.closes}
-                context="investor"
-                decimals={2}
-              />
             )}
           </div>
 
@@ -578,6 +563,30 @@ const StockInvestor = () => {
             <FriendsTab onOpenUser={(id, name) => setOpenUser({ id, name })} />
           </TabsContent>
 
+          <TabsContent value="kaia">
+            <div className="glass-card p-3 sm:p-4">
+              <div className="flex items-center gap-2 mb-3 px-2">
+                <Heart className="w-4 h-4 text-primary" />
+                <h3 className="font-semibold">Ask Kaia (Investor mode — credits)</h3>
+              </div>
+              <DreamGirlChat
+                context="investor"
+                portfolio={
+                  `Username: ${profile?.username || "Trader"}\n` +
+                  `Coins: ${Number(profile?.coins ?? 0).toFixed(2)}\n` +
+                  `Net Profit (realized): ${Number(profile?.net_profit ?? 0).toFixed(2)}\n` +
+                  `Holdings (${holdings.length}):\n` +
+                  holdings.map(h => {
+                    const live = livePrices[h.symbol]?.price;
+                    const cost = h.avg_buy_price * h.quantity;
+                    const value = live ? live * h.quantity : cost;
+                    const pnl = value - cost;
+                    return `- ${h.symbol}: qty ${h.quantity}, avg ${h.avg_buy_price.toFixed(2)}, live ${live?.toFixed(2) ?? "?"}, P/L ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}`;
+                  }).join("\n")
+                }
+              />
+            </div>
+          </TabsContent>
 
           <TabsContent value="profile">
             <ProfileTab />
@@ -590,23 +599,6 @@ const StockInvestor = () => {
         username={openUser?.name ?? ""}
         open={!!openUser}
         onClose={() => setOpenUser(null)}
-      />
-
-      <FloatingKaia
-        context="investor"
-        portfolio={
-          `Username: ${profile?.username || "Trader"}\n` +
-          `Coins: ${Number(profile?.coins ?? 0).toFixed(2)}\n` +
-          `Net Profit (realized): ${Number(profile?.net_profit ?? 0).toFixed(2)}\n` +
-          `Holdings (${holdings.length}):\n` +
-          holdings.map(h => {
-            const live = livePrices[h.symbol]?.price;
-            const cost = h.avg_buy_price * h.quantity;
-            const value = live ? live * h.quantity : cost;
-            const pnl = value - cost;
-            return `- ${h.symbol}: qty ${h.quantity}, avg ${h.avg_buy_price.toFixed(2)}, live ${live?.toFixed(2) ?? "?"}, P/L ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}`;
-          }).join("\n")
-        }
       />
 
       <Footer />
