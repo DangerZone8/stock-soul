@@ -247,7 +247,7 @@ export function DreamGirlChat({ context, portfolio }: { context?: "investor" | "
   ];
 
   return (
-    <div className="glass-card flex flex-col h-[calc(100vh-16rem)] sm:h-[600px] max-w-2xl w-full">
+    <div className="glass-card flex flex-col h-full w-full max-w-2xl">
       {/* Header */}
       <div className="flex items-center gap-3 p-3 sm:p-4 border-b border-border/30">
         <div className="relative">

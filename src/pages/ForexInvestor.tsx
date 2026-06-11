@@ -1,86 +1,98 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, TrendingUp, TrendingDown, RefreshCw, Coins, Briefcase, Trophy, Sparkles, Plus, Minus, Users, Copy, Share2, Crown, Medal } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, RefreshCw, Coins, Globe, Sparkles, Plus, Minus, Trophy, ArrowRight, Users, Crown, Medal, Copy, Share2, UserCircle, Briefcase } from "lucide-react";
 import { Line } from "react-chartjs-2";
 import "chart.js/auto";
 import { Navbar } from "@/components/Navbar";
 import { CandlestickBackground } from "@/components/CandlestickBackground";
 import { Footer } from "@/components/Footer";
+import { FloatingKaia } from "@/components/FloatingKaia";
+import { KaiaTake } from "@/components/KaiaTake";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { FriendsTab, ProfileTab, UserDialog } from "@/components/SocialPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { FriendsTab, ProfileTab, UserDialog } from "@/components/SocialPanel";
-import { FloatingKaia } from "@/components/FloatingKaia";
-import { KaiaTake } from "@/components/KaiaTake";
-import { UserCircle } from "lucide-react";
 
 const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 const REFRESH_MS = 1000;
 
+interface LeaderRow { rank: number; user_id: string; username: string; coins: number; net_profit: number; }
+
+// All commonly tradeable currencies on Yahoo (=X pairs)
+const CURRENCIES = [
+  "USD", "EUR", "GBP", "JPY", "INR", "CAD", "AUD", "CHF",
+  "NZD", "CNY", "HKD", "SGD", "SEK", "NOK", "DKK", "ZAR",
+  "MXN", "BRL", "TRY", "KRW", "AED", "SAR", "THB", "IDR",
+];
+
 const POPULAR = [
-  { label: "NVIDIA", symbol: "NVDA" },
-  { label: "Apple", symbol: "AAPL" },
-  { label: "Tesla", symbol: "TSLA" },
-  { label: "Bitcoin", symbol: "BTC-USD" },
-  { label: "Ethereum", symbol: "ETH-USD" },
-  { label: "Reliance", symbol: "RELIANCE.NS" },
-  { label: "TCS", symbol: "TCS.NS" },
-  { label: "Microsoft", symbol: "MSFT" },
+  { label: "EUR/USD", symbol: "EURUSD=X" },
+  { label: "GBP/USD", symbol: "GBPUSD=X" },
+  { label: "USD/JPY", symbol: "USDJPY=X" },
+  { label: "USD/INR", symbol: "USDINR=X" },
+  { label: "EUR/INR", symbol: "EURINR=X" },
+  { label: "GBP/INR", symbol: "GBPINR=X" },
+  { label: "EUR/GBP", symbol: "EURGBP=X" },
+  { label: "EUR/JPY", symbol: "EURJPY=X" },
+  { label: "AUD/CAD", symbol: "AUDCAD=X" },
 ];
 
 interface Holding {
-  id: string;
-  symbol: string;
-  currency: string;
-  quantity: number;
-  avg_buy_price: number;
+  id: string; symbol: string; currency: string; quantity: number; avg_buy_price: number;
 }
-
 interface Quote {
-  symbol: string;
-  currency: string;
-  regularMarketPrice: number;
-  previousClose: number;
-  timestamps: number[];
-  closes: (number | null)[];
+  symbol: string; currency: string; regularMarketPrice: number; previousClose: number;
+  timestamps: number[]; closes: (number | null)[];
 }
 
-const fmt = (n: number, c = "USD") => `${c === "INR" ? "₹" : "$"}${n.toFixed(2)}`;
-
-const rankFor = (coins: number) => {
-  if (coins >= 10000) return { name: "Whale 🐋", color: "text-purple-500" };
-  if (coins >= 5000) return { name: "Shark 🦈", color: "text-blue-500" };
-  if (coins >= 2000) return { name: "Bull 🐂", color: "text-green-500" };
-  if (coins >= 500) return { name: "Trader 📈", color: "text-amber-500" };
-  return { name: "Rookie 🌱", color: "text-muted-foreground" };
+const isForex = (s: string) => /=X$/i.test(s);
+const formatPairLabel = (sym: string) => {
+  const m = sym.toUpperCase().match(/^([A-Z]{3})([A-Z]{3})=X$/);
+  return m ? `${m[1]}/${m[2]}` : sym;
 };
 
-interface LeaderRow { rank: number; user_id: string; username: string; coins: number; net_profit: number; }
+// Parse arbitrary user input → canonical "XXXYYY=X" Yahoo ticker
+const parsePairInput = (raw: string): string | null => {
+  if (!raw) return null;
+  const upper = raw.toUpperCase();
+  // Already a Yahoo FX ticker
+  let m = upper.match(/([A-Z]{3})([A-Z]{3})=X/);
+  if (m) return `${m[1]}${m[2]}=X`;
+  // "EUR to INR", "EUR-INR", "EUR/INR", "EUR INR"
+  m = upper.match(/\b([A-Z]{3})\b\s*(?:\/|-|TO|VS|\s)+\s*\b([A-Z]{3})\b/);
+  if (m) return `${m[1]}${m[2]}=X`;
+  // "EURINR" 6 letters
+  const stripped = upper.replace(/[^A-Z]/g, "");
+  m = stripped.match(/^([A-Z]{3})([A-Z]{3})$/);
+  if (m) return `${m[1]}${m[2]}=X`;
+  return null;
+};
 
-const StockInvestor = () => {
+const ForexInvestor = () => {
   const { user, profile, refreshProfile } = useAuth();
   const [query, setQuery] = useState("");
-  const [activeTicker, setActiveTicker] = useState("NVDA");
+  const [base, setBase] = useState("EUR");
+  const [quoteCcy, setQuoteCcy] = useState("USD");
+  const [activeTicker, setActiveTicker] = useState("EURUSD=X");
   const [quote, setQuote] = useState<Quote | null>(null);
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [livePrices, setLivePrices] = useState<Record<string, { price: number; currency: string }>>({});
-  const [qty, setQty] = useState("1");
+  const [qty, setQty] = useState("100");
   const [busy, setBusy] = useState(false);
   const [searching, setSearching] = useState(false);
   const [flash, setFlash] = useState<{ kind: "profit" | "loss"; text: string } | null>(null);
-  const [leaderKind, setLeaderKind] = useState<"coins" | "profit">("coins");
+  const [leaderKind, setLeaderKind] = useState<"coins" | "profit">("profit");
   const [leaderboard, setLeaderboard] = useState<LeaderRow[]>([]);
   const [refCode, setRefCode] = useState("");
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [openUser, setOpenUser] = useState<{ id: string; name: string } | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadLeaderboard = useCallback(async (kind: "coins" | "profit") => {
     const { data } = await supabase.rpc("get_leaderboard", { p_kind: kind, p_limit: 25 });
     if (data) setLeaderboard(data as unknown as LeaderRow[]);
   }, []);
-
   useEffect(() => { loadLeaderboard(leaderKind); }, [leaderKind, loadLeaderboard]);
 
   const redeemReferral = async () => {
@@ -94,13 +106,11 @@ const StockInvestor = () => {
       await refreshProfile();
     }
   };
-
   const copyCode = async () => {
     if (!profile?.referral_code) return;
     await navigator.clipboard.writeText(profile.referral_code);
     toast({ title: "Copied!", description: "Referral code copied." });
   };
-
   const shareCode = async () => {
     if (!profile?.referral_code) return;
     const text = `Join me on StockSoul! Use code ${profile.referral_code} to get +100 bonus coins. ${window.location.origin}/auth`;
@@ -112,6 +122,12 @@ const StockInvestor = () => {
     }
   };
 
+  // Keep base/quote selectors in sync with the active ticker
+  useEffect(() => {
+    const m = activeTicker.toUpperCase().match(/^([A-Z]{3})([A-Z]{3})=X$/);
+    if (m) { setBase(m[1]); setQuoteCcy(m[2]); }
+  }, [activeTicker]);
+
   const fetchQuote = useCallback(async (symbol: string) => {
     try {
       const res = await fetch(
@@ -121,15 +137,13 @@ const StockInvestor = () => {
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setQuote(data);
-    } catch {
-      /* ignore */
-    }
+    } catch { /* ignore */ }
   }, []);
 
   const fetchHoldings = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase.from("holdings").select("*").order("created_at", { ascending: false });
-    if (data) setHoldings(data as Holding[]);
+    if (data) setHoldings((data as Holding[]).filter(h => isForex(h.symbol)));
   }, [user]);
 
   const fetchLivePricesForHoldings = useCallback(async (hs: Holding[]) => {
@@ -157,20 +171,24 @@ const StockInvestor = () => {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [activeTicker, fetchQuote, fetchLivePricesForHoldings, holdings]);
 
+  const applyPair = (b: string, q: string) => {
+    if (!b || !q || b === q) { toast({ title: "Pick two different currencies", variant: "destructive" }); return; }
+    setActiveTicker(`${b}${q}=X`);
+  };
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     const q = query.trim();
     if (!q) return;
-    if (/^[A-Z0-9]{1,6}([.-][A-Z0-9]{1,6})?$/.test(q)) {
-      setActiveTicker(q.toUpperCase()); setQuery(""); return;
-    }
+    const parsed = parsePairInput(q);
+    if (parsed) { setActiveTicker(parsed); setQuery(""); return; }
     setSearching(true);
     try {
       const r = await fetch(`https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/stock-chart?q=${encodeURIComponent(q)}`);
       const d = await r.json();
-      const first = d?.quotes?.[0]?.symbol;
-      if (first) { setActiveTicker(first); setQuery(""); }
-      else toast({ title: "No match", description: `No stock/crypto found for "${q}"`, variant: "destructive" });
+      const first = d?.quotes?.find((x: { symbol: string }) => isForex(x.symbol))?.symbol || d?.quotes?.[0]?.symbol;
+      if (first && isForex(first)) { setActiveTicker(first); setQuery(""); }
+      else toast({ title: "No FX pair found", description: `Try "EUR/INR", "GBPJPY" or use the dropdowns.`, variant: "destructive" });
     } finally { setSearching(false); }
   };
 
@@ -207,14 +225,11 @@ const StockInvestor = () => {
   const change = price - prevClose;
   const pct = prevClose > 0 ? (change / prevClose) * 100 : 0;
   const isUp = change >= 0;
-  const currency = quote?.currency || "USD";
+  const pairLabel = formatPairLabel(activeTicker);
 
   const portfolioValue = holdings.reduce((s, h) => s + (livePrices[h.symbol]?.price ?? h.avg_buy_price) * h.quantity, 0);
   const totalCost = holdings.reduce((s, h) => s + h.avg_buy_price * h.quantity, 0);
   const unrealizedPnL = portfolioValue - totalCost;
-  const realizedPnL = profile?.net_profit ?? 0;
-  const totalNetProfit = realizedPnL + unrealizedPnL;
-  const rank = rankFor(profile?.coins ?? 0);
 
   const validPts = (quote?.timestamps || []).map((t, i) => ({ t, c: quote?.closes?.[i] })).filter(p => p.c != null && Number.isFinite(p.c as number));
   const chartConfig = {
@@ -227,7 +242,7 @@ const StockInvestor = () => {
     }],
   };
   const chartOptions = {
-    responsive: true, maintainAspectRatio: false,
+    responsive: true, maintainAspectRatio: false, animation: false as const,
     plugins: { legend: { display: false } },
     scales: {
       x: { grid: { display: false }, ticks: { color: "rgba(150,150,150,0.6)", maxTicksLimit: 6, font: { size: 10 } } },
@@ -235,15 +250,30 @@ const StockInvestor = () => {
     },
   };
 
+  const portfolioCtx = useMemo(() => {
+    if (!user) return undefined;
+    return (
+      `Username: ${profile?.username || "Trader"}\n` +
+      `Coins: ${Number(profile?.coins ?? 0).toFixed(2)}\n` +
+      `Active FX pair: ${pairLabel} (${activeTicker}) @ ${price.toFixed(5)}\n` +
+      `FX Holdings (${holdings.length}):\n` +
+      holdings.map(h => {
+        const live = livePrices[h.symbol]?.price;
+        const pnl = ((live ?? h.avg_buy_price) - h.avg_buy_price) * h.quantity;
+        return `- ${formatPairLabel(h.symbol)}: qty ${h.quantity}, avg ${h.avg_buy_price.toFixed(5)}, live ${live?.toFixed(5) ?? "?"}, P/L ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}`;
+      }).join("\n")
+    );
+  }, [user, profile, holdings, livePrices, activeTicker, pairLabel, price]);
+
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
         <CandlestickBackground />
         <Navbar />
         <div className="container mx-auto px-4 py-20 text-center relative z-10">
-          <Briefcase className="w-12 h-12 text-primary mx-auto mb-4" />
-          <h1 className="text-3xl font-semibold mb-2">Stock Investor</h1>
-          <p className="text-muted-foreground mb-6">Sign in to start trading with virtual coins. Get 250 free coins every day!</p>
+          <Globe className="w-12 h-12 text-primary mx-auto mb-4" />
+          <h1 className="text-3xl font-semibold mb-2">Forex Investor</h1>
+          <p className="text-muted-foreground mb-6">Sign in to trade currency pairs with virtual coins.</p>
           <Link to="/auth" className="inline-flex items-center gap-2 px-6 h-11 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90">
             Sign in to play
           </Link>
@@ -274,44 +304,43 @@ const StockInvestor = () => {
       <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 relative z-10">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
           <div className="flex items-center gap-2 mb-2">
-            <Briefcase className="w-4 h-4 text-primary" />
-            <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Virtual Trading Game</span>
+            <Globe className="w-4 h-4 text-primary" />
+            <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Currency Trading Game</span>
           </div>
           <div className="flex items-end justify-between flex-wrap gap-4">
             <div>
               <h1 className="text-3xl sm:text-5xl font-semibold tracking-tighter">
-                Stock <span className="text-primary">Investor</span>
+                Forex <span className="text-primary">Investor</span>
               </h1>
-              <p className="text-muted-foreground mt-2">Buy, sell, and grow your coin stack with real live prices.</p>
+              <p className="text-muted-foreground mt-2">Trade any currency pair — USD, EUR, INR, JPY, CAD, GBP, AUD, CHF and more.</p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap">
               <div className="glass-card px-4 py-2.5">
                 <div className="text-xs text-muted-foreground">Coins</div>
                 <div className="flex items-center gap-1.5 font-mono font-bold text-amber-500"><Coins className="w-4 h-4" />{Number(profile?.coins ?? 0).toFixed(2)}</div>
               </div>
               <div className="glass-card px-4 py-2.5">
-                <div className="text-xs text-muted-foreground">Rank</div>
-                <div className={`font-bold flex items-center gap-1.5 ${rank.color}`}><Trophy className="w-4 h-4" />{rank.name}</div>
-              </div>
-              <div className="glass-card px-4 py-2.5">
-                <div className="text-xs text-muted-foreground">Portfolio Value</div>
+                <div className="text-xs text-muted-foreground">FX Portfolio</div>
                 <div className="font-mono font-bold">{portfolioValue.toFixed(2)} <span className="text-xs text-muted-foreground">coins</span></div>
               </div>
-              <div className={`glass-card px-4 py-2.5 ${totalNetProfit >= 0 ? "border-green-500/40" : "border-red-500/40"}`}>
-                <div className="text-xs text-muted-foreground">Net Profit</div>
-                <div className={`font-mono font-bold flex items-center gap-1 ${totalNetProfit >= 0 ? "text-green-500" : "text-red-500"}`}>
-                  {totalNetProfit >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                  {totalNetProfit >= 0 ? "+" : ""}{totalNetProfit.toFixed(2)}
+              <div className={`glass-card px-4 py-2.5 ${unrealizedPnL >= 0 ? "border-green-500/40" : "border-red-500/40"}`}>
+                <div className="text-xs text-muted-foreground">Unrealized P/L</div>
+                <div className={`font-mono font-bold flex items-center gap-1 ${unrealizedPnL >= 0 ? "text-green-500" : "text-red-500"}`}>
+                  {unrealizedPnL >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                  {unrealizedPnL >= 0 ? "+" : ""}{unrealizedPnL.toFixed(2)}
                 </div>
               </div>
+              <Link to="/investor" className="glass-card px-4 py-2.5 hover:border-primary/40 transition">
+                <div className="text-xs text-muted-foreground">Switch to</div>
+                <div className="font-semibold flex items-center gap-1.5"><Trophy className="w-4 h-4 text-primary" />Stocks</div>
+              </Link>
             </div>
           </div>
         </motion.div>
 
         <Tabs defaultValue="trade" className="w-full">
           <TabsList className="mb-6 bg-secondary/40 border border-border/30 flex-wrap h-auto">
-            <TabsTrigger value="trade" className="gap-1.5"><Briefcase className="w-3.5 h-3.5" />Trade</TabsTrigger>
-            
+            <TabsTrigger value="trade" className="gap-1.5"><Globe className="w-3.5 h-3.5" />Trade</TabsTrigger>
             <TabsTrigger value="leaderboard" className="gap-1.5"><Trophy className="w-3.5 h-3.5" />Leaderboard</TabsTrigger>
             <TabsTrigger value="friends" className="gap-1.5"><Users className="w-3.5 h-3.5" />Friends</TabsTrigger>
             <TabsTrigger value="referral" className="gap-1.5"><Sparkles className="w-3.5 h-3.5" />Referral</TabsTrigger>
@@ -320,16 +349,52 @@ const StockInvestor = () => {
 
           <TabsContent value="trade">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* LEFT: trade panel */}
           <div className="lg:col-span-2 space-y-6">
-            <form onSubmit={handleSearch} className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <input value={query} onChange={e => setQuery(e.target.value)}
-                placeholder="Search any stock or crypto (NVDA, BTC-USD, RELIANCE.NS)"
-                className="w-full h-14 pl-12 pr-4 rounded-xl bg-secondary/50 border border-border/50 focus:outline-none focus:ring-2 focus:ring-primary/40" />
-              {searching && <RefreshCw className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />}
-            </form>
+            {/* Pair selector — dropdowns + search */}
+            <div className="glass-card p-4 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-muted-foreground">
+                <Globe className="w-3.5 h-3.5 text-primary" /> Pick any currency pair
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
+                <div className="flex-1">
+                  <label className="text-xs text-muted-foreground">Base</label>
+                  <select
+                    value={base}
+                    onChange={(e) => { const v = e.target.value; setBase(v); applyPair(v, quoteCcy); }}
+                    className="mt-1 w-full h-11 px-3 rounded-lg bg-secondary/50 border border-border/50 font-mono focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  >
+                    {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <ArrowRight className="hidden sm:block w-5 h-5 text-muted-foreground mb-3" />
+                <div className="flex-1">
+                  <label className="text-xs text-muted-foreground">Quote</label>
+                  <select
+                    value={quoteCcy}
+                    onChange={(e) => { const v = e.target.value; setQuoteCcy(v); applyPair(base, v); }}
+                    className="mt-1 w-full h-11 px-3 rounded-lg bg-secondary/50 border border-border/50 font-mono focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  >
+                    {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <button
+                  onClick={() => applyPair(base, quoteCcy)}
+                  className="h-11 px-4 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90"
+                >
+                  Load {base}/{quoteCcy}
+                </button>
+              </div>
 
+              <form onSubmit={handleSearch} className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <input value={query} onChange={e => setQuery(e.target.value)}
+                  placeholder='Or type a pair: "EUR to INR", "GBPJPY", "USD/CAD"…'
+                  className="w-full h-12 pl-12 pr-4 rounded-xl bg-secondary/40 border border-border/40 focus:outline-none focus:ring-2 focus:ring-primary/40" />
+                {searching && <RefreshCw className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />}
+              </form>
+            </div>
+
+            {/* Popular shortcuts */}
             <div className="flex flex-wrap gap-2">
               {POPULAR.map(t => (
                 <button key={t.symbol} onClick={() => setActiveTicker(t.symbol)}
@@ -343,12 +408,15 @@ const StockInvestor = () => {
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-5">
                 <div className="flex items-end justify-between gap-4 mb-4">
                   <div>
-                    <div className="text-xs text-muted-foreground font-mono">{quote.symbol}</div>
-                    <div className="text-3xl font-bold font-mono">{fmt(price, currency)}</div>
+                    <div className="text-xs text-muted-foreground font-mono">{pairLabel} <span className="opacity-50">· {quote.symbol}</span></div>
+                    <div className="text-3xl font-bold font-mono">{price.toFixed(5)}</div>
                     <div className={`text-sm flex items-center gap-1 mt-1 ${isUp ? "text-green-500" : "text-red-500"}`}>
                       {isUp ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                      {isUp ? "+" : ""}{change.toFixed(2)} ({pct.toFixed(2)}%)
+                      {isUp ? "+" : ""}{change.toFixed(5)} ({pct.toFixed(2)}%)
                     </div>
+                  </div>
+                  <div className="text-xs text-muted-foreground text-right">
+                    1 {base} = <span className="font-mono text-foreground">{price.toFixed(5)}</span> {quoteCcy}
                   </div>
                 </div>
                 <div className="h-[220px] mb-4">
@@ -357,12 +425,12 @@ const StockInvestor = () => {
 
                 <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
                   <div className="flex-1">
-                    <label className="text-xs text-muted-foreground">Quantity</label>
+                    <label className="text-xs text-muted-foreground">Units of {base}</label>
                     <div className="flex items-center gap-2 mt-1">
-                      <button type="button" onClick={() => setQty(q => String(Math.max(0.0001, Number(q) - 1)))} className="w-9 h-10 rounded-lg bg-secondary border border-border/50 flex items-center justify-center hover:bg-secondary/80"><Minus className="w-4 h-4" /></button>
+                      <button type="button" onClick={() => setQty(q => String(Math.max(1, Number(q) - 100)))} className="w-9 h-10 rounded-lg bg-secondary border border-border/50 flex items-center justify-center hover:bg-secondary/80"><Minus className="w-4 h-4" /></button>
                       <input type="number" step="any" min="0" value={qty} onChange={e => setQty(e.target.value)}
                         className="flex-1 h-10 px-3 rounded-lg bg-secondary/50 border border-border/50 font-mono focus:outline-none focus:ring-2 focus:ring-primary/40" />
-                      <button type="button" onClick={() => setQty(q => String(Number(q) + 1))} className="w-9 h-10 rounded-lg bg-secondary border border-border/50 flex items-center justify-center hover:bg-secondary/80"><Plus className="w-4 h-4" /></button>
+                      <button type="button" onClick={() => setQty(q => String(Number(q) + 100))} className="w-9 h-10 rounded-lg bg-secondary border border-border/50 flex items-center justify-center hover:bg-secondary/80"><Plus className="w-4 h-4" /></button>
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">Cost: <span className="font-mono">{(Number(qty) * price).toFixed(2)} coins</span></div>
                   </div>
@@ -383,20 +451,20 @@ const StockInvestor = () => {
                 symbol={quote.symbol}
                 price={quote.regularMarketPrice}
                 changePercent={prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0}
-                currency={currency}
+                currency={quote.currency}
                 closes={quote.closes}
+                label={pairLabel}
                 context="investor"
-                decimals={2}
+                decimals={5}
               />
             )}
           </div>
 
-          {/* RIGHT: portfolio */}
           <div className="space-y-4">
             <div className="glass-card p-5">
               <div className="flex items-center gap-2 mb-3">
                 <Sparkles className="w-4 h-4 text-primary" />
-                <h3 className="font-semibold">Your Portfolio</h3>
+                <h3 className="font-semibold">FX Holdings</h3>
               </div>
               <div className="space-y-1 mb-4 text-sm">
                 <div className="flex justify-between"><span className="text-muted-foreground">Holdings value</span><span className="font-mono font-semibold">{portfolioValue.toFixed(2)}</span></div>
@@ -404,14 +472,11 @@ const StockInvestor = () => {
                 <div className="flex justify-between font-semibold"><span>Unrealized P/L</span>
                   <span className={`font-mono ${unrealizedPnL >= 0 ? "text-green-500" : "text-red-500"}`}>{unrealizedPnL >= 0 ? "+" : ""}{unrealizedPnL.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Realized P/L</span>
-                  <span className={`font-mono ${realizedPnL >= 0 ? "text-green-500" : "text-red-500"}`}>{realizedPnL >= 0 ? "+" : ""}{realizedPnL.toFixed(2)}</span>
-                </div>
               </div>
 
               {holdings.length === 0 ? (
                 <div className="text-sm text-muted-foreground text-center py-6">
-                  No holdings yet. Buy your first stock to get started! 🚀
+                  No FX positions yet. Pick a pair above to start. 🌍
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -426,13 +491,13 @@ const StockInvestor = () => {
                         onClick={() => setActiveTicker(h.symbol)}>
                         <div className="flex justify-between items-start mb-1">
                           <div>
-                            <div className="font-mono font-semibold text-sm">{h.symbol}</div>
-                            <div className="text-xs text-muted-foreground">Qty {h.quantity} · Avg {h.avg_buy_price.toFixed(2)}</div>
+                            <div className="font-mono font-semibold text-sm">{formatPairLabel(h.symbol)}</div>
+                            <div className="text-xs text-muted-foreground">Qty {h.quantity} · Avg {h.avg_buy_price.toFixed(5)}</div>
                           </div>
                           <div className="text-right">
-                            <div className="font-mono text-sm">{live.toFixed(2)}</div>
+                            <div className="font-mono text-sm">{live.toFixed(5)}</div>
                             <div className={`text-xs font-mono ${positive ? "text-green-500" : "text-red-500"}`}>
-                              {positive ? "+" : ""}{pl.toFixed(2)} ({plPct.toFixed(1)}%)
+                              {positive ? "+" : ""}{pl.toFixed(2)} ({plPct.toFixed(2)}%)
                             </div>
                           </div>
                         </div>
@@ -441,9 +506,9 @@ const StockInvestor = () => {
                             className="flex-1 h-8 text-xs rounded-md bg-red-500/15 text-red-500 hover:bg-red-500/25 font-medium">
                             Sell all
                           </button>
-                          <button onClick={(e) => { e.stopPropagation(); trade("buy", h.symbol, 1); }}
+                          <button onClick={(e) => { e.stopPropagation(); trade("buy", h.symbol, 100); }}
                             className="flex-1 h-8 text-xs rounded-md bg-green-500/15 text-green-500 hover:bg-green-500/25 font-medium">
-                            Buy +1
+                            Buy +100
                           </button>
                         </div>
                       </motion.div>
@@ -461,7 +526,7 @@ const StockInvestor = () => {
               <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
                 <div className="flex items-center gap-2">
                   <Crown className="w-5 h-5 text-amber-500" />
-                  <h3 className="text-xl font-semibold">Top Traders</h3>
+                  <h3 className="text-xl font-semibold">Top Traders (Stocks + Forex)</h3>
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => setLeaderKind("coins")}
@@ -474,7 +539,6 @@ const StockInvestor = () => {
                   </button>
                 </div>
               </div>
-
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -493,11 +557,7 @@ const StockInvestor = () => {
                       const medal = row.rank === 1 ? "🥇" : row.rank === 2 ? "🥈" : row.rank === 3 ? "🥉" : null;
                       return (
                         <tr key={row.user_id} className={`border-b border-border/20 ${isMe ? "bg-primary/10" : "hover:bg-secondary/30"}`}>
-                          <td className="py-3 px-2 font-mono font-bold">
-                            <span className="inline-flex items-center gap-1">
-                              {medal || `#${row.rank}`}
-                            </span>
-                          </td>
+                          <td className="py-3 px-2 font-mono font-bold">{medal || `#${row.rank}`}</td>
                           <td className="py-3 px-2 font-medium">
                             <button onClick={() => !isMe && setOpenUser({ id: row.user_id, name: row.username })}
                               className={`text-left hover:text-primary transition ${isMe ? "" : "cursor-pointer"}`}>
@@ -515,9 +575,13 @@ const StockInvestor = () => {
                 </table>
               </div>
               <p className="text-xs text-muted-foreground mt-4 flex items-center gap-1.5">
-                <Medal className="w-3.5 h-3.5" /> Net Profit = realized profit/loss from completed sells. Trade smarter to climb the ranks.
+                <Medal className="w-3.5 h-3.5" /> Rankings combine activity from Stock Investor and Forex Investor.
               </p>
             </div>
+          </TabsContent>
+
+          <TabsContent value="friends">
+            <FriendsTab onOpenUser={(id, name) => setOpenUser({ id, name })} />
           </TabsContent>
 
           <TabsContent value="referral">
@@ -545,7 +609,6 @@ const StockInvestor = () => {
                   <Share2 className="w-4 h-4" /> Share invite
                 </button>
               </div>
-
               <div className="glass-card p-6">
                 <div className="flex items-center gap-2 mb-2">
                   <Users className="w-4 h-4 text-primary" />
@@ -574,11 +637,6 @@ const StockInvestor = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="friends">
-            <FriendsTab onOpenUser={(id, name) => setOpenUser({ id, name })} />
-          </TabsContent>
-
-
           <TabsContent value="profile">
             <ProfileTab />
           </TabsContent>
@@ -592,26 +650,11 @@ const StockInvestor = () => {
         onClose={() => setOpenUser(null)}
       />
 
-      <FloatingKaia
-        context="investor"
-        portfolio={
-          `Username: ${profile?.username || "Trader"}\n` +
-          `Coins: ${Number(profile?.coins ?? 0).toFixed(2)}\n` +
-          `Net Profit (realized): ${Number(profile?.net_profit ?? 0).toFixed(2)}\n` +
-          `Holdings (${holdings.length}):\n` +
-          holdings.map(h => {
-            const live = livePrices[h.symbol]?.price;
-            const cost = h.avg_buy_price * h.quantity;
-            const value = live ? live * h.quantity : cost;
-            const pnl = value - cost;
-            return `- ${h.symbol}: qty ${h.quantity}, avg ${h.avg_buy_price.toFixed(2)}, live ${live?.toFixed(2) ?? "?"}, P/L ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}`;
-          }).join("\n")
-        }
-      />
+      <FloatingKaia context="investor" portfolio={portfolioCtx} />
 
       <Footer />
     </div>
   );
 };
 
-export default StockInvestor;
+export default ForexInvestor;
