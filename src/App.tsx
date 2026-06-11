@@ -8,6 +8,8 @@ import Index from "./pages/Index.tsx";
 import DreamGirl from "./pages/DreamGirl.tsx";
 import LiveMarket from "./pages/LiveMarket.tsx";
 import StockInvestor from "./pages/StockInvestor.tsx";
+import ForexInvestor from "./pages/ForexInvestor.tsx";
+import CopyTrading from "./pages/CopyTrading.tsx";
 import Auth from "./pages/Auth.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -26,6 +28,8 @@ const App = () => (
             <Route path="/dream-girl" element={<DreamGirl />} />
             <Route path="/live" element={<LiveMarket />} />
             <Route path="/investor" element={<StockInvestor />} />
+            <Route path="/forex" element={<ForexInvestor />} />
+            <Route path="/copy" element={<CopyTrading />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
