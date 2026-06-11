@@ -21,42 +21,85 @@ export function FriendsTab({ onOpenUser }: { onOpenUser: (id: string, username: 
   const [leaderKind, setLeaderKind] = useState<"coins" | "profit">("coins");
   const [friendBoard, setFriendBoard] = useState<{ rank: number; user_id: string; username: string; coins: number; net_profit: number }[]>([]);
   const friendChannelRef = useRef<RealtimeChannel | null>(null);
+  const friendshipSetupDoneRef = useRef(false);
 
   const loadFriends = useCallback(async () => {
-    const { data } = await supabase.rpc("get_friendships");
-    if (data) setFriends(data as FriendRow[]);
+    try {
+      const { data, error } = await supabase.rpc("get_friendships");
+      if (error) {
+        console.error("Error loading friends:", error);
+        return;
+      }
+      if (data) setFriends(data as FriendRow[]);
+    } catch (err) {
+      console.error("Exception loading friends:", err);
+    }
   }, []);
+
   const loadFriendBoard = useCallback(async (kind: "coins" | "profit") => {
-    const { data } = await supabase.rpc("get_friends_leaderboard", { p_kind: kind });
-    if (data) setFriendBoard(data as never);
+    try {
+      const { data, error } = await supabase.rpc("get_friends_leaderboard", { p_kind: kind });
+      if (error) {
+        console.error("Error loading friend board:", error);
+        return;
+      }
+      if (data) setFriendBoard(data as never);
+    } catch (err) {
+      console.error("Exception loading friend board:", err);
+    }
   }, []);
 
   useEffect(() => { loadFriends(); }, [loadFriends]);
   useEffect(() => { loadFriendBoard(leaderKind); }, [leaderKind, loadFriendBoard]);
 
-  // Realtime: refresh friend list when someone sends/accepts a request
+  // Setup realtime for friendships ONCE
   useEffect(() => {
     if (!user) {
       if (friendChannelRef.current) {
         supabase.removeChannel(friendChannelRef.current);
         friendChannelRef.current = null;
       }
+      friendshipSetupDoneRef.current = false;
       return;
     }
+
+    // Only setup once per user
+    if (friendshipSetupDoneRef.current) {
+      return;
+    }
+    friendshipSetupDoneRef.current = true;
+
     if (friendChannelRef.current) {
       supabase.removeChannel(friendChannelRef.current);
     }
-    const ch = supabase.channel(`friendships-${user.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "friendships" }, () => {
+
+    // Create channel with postgres_changes listeners BEFORE subscribe
+    const ch = supabase.channel(`friendships-${user.id}`);
+    
+    ch.on("postgres_changes", 
+      { event: "*", schema: "public", table: "friendships" }, 
+      () => {
         loadFriends();
         loadFriendBoard(leaderKind);
-      }).subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          friendChannelRef.current = ch;
-        }
-      });
+      }
+    );
+
+    // Subscribe after listeners are attached
+    ch.subscribe((status) => {
+      if (status === "SUBSCRIBED") {
+        friendChannelRef.current = ch;
+        console.log("Friendships channel subscribed");
+      } else if (status === "CHANNEL_ERROR") {
+        console.error("Friendships channel error");
+      }
+    });
+
     // Safety poll every 8s in case realtime drops
-    const poll = setInterval(loadFriends, 8000);
+    const poll = setInterval(() => {
+      loadFriends();
+      loadFriendBoard(leaderKind);
+    }, 8000);
+
     return () => {
       if (friendChannelRef.current === ch) {
         supabase.removeChannel(ch);
@@ -64,30 +107,57 @@ export function FriendsTab({ onOpenUser }: { onOpenUser: (id: string, username: 
       }
       clearInterval(poll);
     };
-  }, [user, loadFriends, loadFriendBoard, leaderKind]);
+  }, [user, leaderKind, loadFriends, loadFriendBoard]);
 
   useEffect(() => {
     if (!q.trim()) { setResults([]); return; }
     const t = setTimeout(async () => {
       setSearching(true);
-      const { data } = await supabase.rpc("search_users", { p_q: q.trim(), p_limit: 10 });
-      setResults((data as UserRow[]) || []);
+      try {
+        const { data, error } = await supabase.rpc("search_users", { p_q: q.trim(), p_limit: 10 });
+        if (error) {
+          console.error("Error searching users:", error);
+        }
+        setResults((data as UserRow[]) || []);
+      } catch (err) {
+        console.error("Exception searching users:", err);
+        setResults([]);
+      }
       setSearching(false);
     }, 300);
     return () => clearTimeout(t);
   }, [q]);
 
   const sendRequest = async (id: string) => {
-    const { data } = await supabase.rpc("send_friend_request", { p_addressee: id });
-    const row = data?.[0];
-    toast({ title: row?.success ? "Sent!" : "Hmm", description: row?.message || "" });
-    await loadFriends();
+    try {
+      const { data, error } = await supabase.rpc("send_friend_request", { p_addressee: id });
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+        return;
+      }
+      const row = data?.[0];
+      toast({ title: row?.success ? "Sent!" : "Hmm", description: row?.message || "" });
+      await loadFriends();
+    } catch (err) {
+      console.error("Exception sending friend request:", err);
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to send request", variant: "destructive" });
+    }
   };
+
   const accept = async (id: string) => {
-    const { data } = await supabase.rpc("accept_friend_request", { p_requester: id });
-    const row = data?.[0];
-    toast({ title: row?.success ? "Friend added" : "Error", description: row?.message || "" });
-    await loadFriends();
+    try {
+      const { data, error } = await supabase.rpc("accept_friend_request", { p_requester: id });
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+        return;
+      }
+      const row = data?.[0];
+      toast({ title: row?.success ? "Friend added" : "Error", description: row?.message || "" });
+      await loadFriends();
+    } catch (err) {
+      console.error("Exception accepting friend request:", err);
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to accept request", variant: "destructive" });
+    }
   };
 
   return (
@@ -146,14 +216,14 @@ export function FriendsTab({ onOpenUser }: { onOpenUser: (id: string, username: 
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold">Friends Leaderboard</h3>
           <div className="flex gap-1.5">
-            <button onClick={() => setLeaderKind("coins")} className={`px-2.5 h-8 rounded-md text-xs font-medium ${leaderKind === "coins" ? "bg-primary text-primary-foreground" : "bg-secondary/60 text-muted-foreground"}`}>Coins</button>
-            <button onClick={() => setLeaderKind("profit")} className={`px-2.5 h-8 rounded-md text-xs font-medium ${leaderKind === "profit" ? "bg-primary text-primary-foreground" : "bg-secondary/60 text-muted-foreground"}`}>Profit</button>
+            <button onClick={() => setLeaderKind("coins")} className={`px-2.5 h-8 rounded-md text-xs font-medium ${leaderKind === "coins" ? "bg-primary text-primary-foreground" : "bg-secondary/60 text-muted-foreground hover:bg-secondary"}`}>Coins</button>
+            <button onClick={() => setLeaderKind("profit")} className={`px-2.5 h-8 rounded-md text-xs font-medium ${leaderKind === "profit" ? "bg-primary text-primary-foreground" : "bg-secondary/60 text-muted-foreground hover:bg-secondary"}`}>Profit</button>
           </div>
         </div>
         <div className="space-y-2 max-h-[500px] overflow-y-auto">
           {friendBoard.length <= 1 && <p className="text-sm text-muted-foreground text-center py-6">Add friends to see them here.</p>}
           {friendBoard.map(r => (
-            <button key={r.user_id} onClick={() => onOpenUser(r.user_id, r.username)} className="w-full flex items-center justify-between p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition text-left">
+            <button key={r.user_id} onClick={() => onOpenUser(r.user_id, r.username)} className="w-full flex items-center justify-between p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors text-left">
               <div className="flex items-center gap-3">
                 <span className="font-mono font-bold text-sm w-6">#{r.rank}</span>
                 <div>
@@ -181,15 +251,25 @@ export function ProfileTab() {
   const change = async () => {
     if (!newName.trim()) return;
     setBusy(true);
-    const { data, error } = await supabase.rpc("change_username", { p_new: newName.trim() });
-    setBusy(false);
-    const row = data?.[0];
-    if (error || !row?.success) {
-      toast({ title: "Couldn't change", description: row?.message || error?.message, variant: "destructive" });
-    } else {
-      toast({ title: "Username updated", description: `You have ${row.remaining} change(s) left.` });
-      setNewName("");
-      await refreshProfile();
+    try {
+      const { data, error } = await supabase.rpc("change_username", { p_new: newName.trim() });
+      if (error) {
+        toast({ title: "Couldn't change", description: error.message, variant: "destructive" });
+        return;
+      }
+      const row = data?.[0];
+      if (!row?.success) {
+        toast({ title: "Couldn't change", description: row?.message || "Unknown error", variant: "destructive" });
+      } else {
+        toast({ title: "Username updated", description: `You have ${row.remaining} change(s) left.` });
+        setNewName("");
+        await refreshProfile();
+      }
+    } catch (err) {
+      console.error("Exception changing username:", err);
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to change username", variant: "destructive" });
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -200,7 +280,7 @@ export function ProfileTab() {
         <div className="space-y-2 text-sm">
           <div className="flex justify-between"><span className="text-muted-foreground">Username</span><span className="font-mono font-semibold">{profile?.username || "—"}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">Coins</span><span className="font-mono text-amber-500 font-semibold">{Number(profile?.coins ?? 0).toFixed(2)}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Net Profit</span><span className={`font-mono ${(profile?.net_profit ?? 0) >= 0 ? "text-green-500" : "text-red-500"}`}>{(profile?.net_profit ?? 0) >= 0 ? "+" : ""}{Number(profile?.net_profit ?? 0).toFixed(2)}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Net Profit</span><span className={`font-mono ${(profile?.net_profit ?? 0) >= 0 ? "text-green-500" : "text-red-500"} font-semibold`}>{Number(profile?.net_profit ?? 0).toFixed(2)}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">Username changes left</span><span className="font-mono">{remaining}/5</span></div>
         </div>
       </div>
@@ -232,23 +312,35 @@ export function UserDialog({ userId, username, open, onClose }: { userId: string
 
   const load = useCallback(async () => {
     if (!userId) return;
-    const [p, t, f] = await Promise.all([
-      supabase.rpc("get_user_public", { p_user: userId }),
-      supabase.rpc("get_user_recent_trades", { p_user: userId, p_limit: 10 }),
-      supabase.from("follows").select("*").eq("follower_id", user?.id || "").eq("following_id", userId).maybeSingle(),
-    ]);
-    if (p.data?.[0]) setProfile(p.data[0] as UserRow);
-    if (t.data) setTrades(t.data as TradeRow[]);
-    setFollowing(!!f.data);
+    try {
+      const [p, t, f] = await Promise.all([
+        supabase.rpc("get_user_public", { p_user: userId }),
+        supabase.rpc("get_user_recent_trades", { p_user: userId, p_limit: 10 }),
+        supabase.from("follows").select("*").eq("follower_id", user?.id || "").eq("following_id", userId).maybeSingle(),
+      ]);
+      if (p.data?.[0]) setProfile(p.data[0] as UserRow);
+      if (t.data) setTrades(t.data as TradeRow[]);
+      setFollowing(!!f.data);
+    } catch (err) {
+      console.error("Exception loading user profile:", err);
+    }
   }, [userId, user]);
 
   const loadMessages = useCallback(async () => {
     if (!userId || !user) return;
-    const { data } = await supabase.from("direct_messages").select("*")
-      .or(`and(sender_id.eq.${user.id},recipient_id.eq.${userId}),and(sender_id.eq.${userId},recipient_id.eq.${user.id})`)
-      .order("created_at", { ascending: true }).limit(100);
-    if (data) setMessages(data as DM[]);
-    setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }), 50);
+    try {
+      const { data, error } = await supabase.from("direct_messages").select("*")
+        .or(`and(sender_id.eq.${user.id},recipient_id.eq.${userId}),and(sender_id.eq.${userId},recipient_id.eq.${user.id})`)
+        .order("created_at", { ascending: true }).limit(100);
+      if (error) {
+        console.error("Error loading messages:", error);
+        return;
+      }
+      if (data) setMessages(data as DM[]);
+      setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }), 50);
+    } catch (err) {
+      console.error("Exception loading messages:", err);
+    }
   }, [userId, user]);
 
   useEffect(() => { if (open) load(); }, [open, load]);
@@ -265,18 +357,26 @@ export function UserDialog({ userId, username, open, onClose }: { userId: string
     if (dmChannelRef.current) {
       supabase.removeChannel(dmChannelRef.current);
     }
-    const ch = supabase.channel(`dm-${user.id}-${userId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "direct_messages" }, (payload) => {
+
+    const ch = supabase.channel(`dm-${user.id}-${userId}`);
+    
+    ch.on("postgres_changes", 
+      { event: "INSERT", schema: "public", table: "direct_messages" }, 
+      (payload) => {
         const m = payload.new as DM;
         if ((m.sender_id === user.id && m.recipient_id === userId) || (m.sender_id === userId && m.recipient_id === user.id)) {
           setMessages(prev => [...prev, m]);
           setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }), 50);
         }
-      }).subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          dmChannelRef.current = ch;
-        }
-      });
+      }
+    );
+
+    ch.subscribe((status) => {
+      if (status === "SUBSCRIBED") {
+        dmChannelRef.current = ch;
+      }
+    });
+
     return () => {
       if (dmChannelRef.current === ch) {
         supabase.removeChannel(ch);
@@ -287,23 +387,51 @@ export function UserDialog({ userId, username, open, onClose }: { userId: string
 
   const toggleFollow = async () => {
     if (!userId) return;
-    const { data } = await supabase.rpc("toggle_follow", { p_target: userId });
-    const row = data?.[0];
-    if (row?.success) { setFollowing(row.following); toast({ title: row.message }); }
+    try {
+      const { data, error } = await supabase.rpc("toggle_follow", { p_target: userId });
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+        return;
+      }
+      const row = data?.[0];
+      if (row?.success) { setFollowing(row.following); toast({ title: row.message }); }
+    } catch (err) {
+      console.error("Exception toggling follow:", err);
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to toggle follow", variant: "destructive" });
+    }
   };
 
   const sendFriend = async () => {
     if (!userId) return;
-    const { data } = await supabase.rpc("send_friend_request", { p_addressee: userId });
-    const row = data?.[0];
-    toast({ title: row?.success ? "Sent!" : "Hmm", description: row?.message || "" });
+    try {
+      const { data, error } = await supabase.rpc("send_friend_request", { p_addressee: userId });
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+        return;
+      }
+      const row = data?.[0];
+      toast({ title: row?.success ? "Sent!" : "Hmm", description: row?.message || "" });
+    } catch (err) {
+      console.error("Exception sending friend request:", err);
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to send request", variant: "destructive" });
+    }
   };
 
   const sendMsg = async () => {
     if (!draft.trim() || !userId || !user) return;
     const body = draft.trim();
     setDraft("");
-    await supabase.from("direct_messages").insert({ sender_id: user.id, recipient_id: userId, body });
+    try {
+      const { error } = await supabase.from("direct_messages").insert({ sender_id: user.id, recipient_id: userId, body });
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+        setDraft(body); // Restore on error
+      }
+    } catch (err) {
+      console.error("Exception sending message:", err);
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to send message", variant: "destructive" });
+      setDraft(body);
+    }
   };
 
   return (
@@ -326,12 +454,12 @@ export function UserDialog({ userId, username, open, onClose }: { userId: string
             {profile && (
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="p-3 rounded-lg bg-secondary/40"><div className="text-xs text-muted-foreground">Coins</div><div className="font-mono font-bold text-amber-500">{Number(profile.coins).toFixed(2)}</div></div>
-                <div className="p-3 rounded-lg bg-secondary/40"><div className="text-xs text-muted-foreground">Net Profit</div><div className={`font-mono font-bold ${profile.net_profit >= 0 ? "text-green-500" : "text-red-500"}`}>{profile.net_profit >= 0 ? "+" : ""}{Number(profile.net_profit).toFixed(2)}</div></div>
+                <div className="p-3 rounded-lg bg-secondary/40"><div className="text-xs text-muted-foreground">Net Profit</div><div className={`font-mono font-bold ${profile.net_profit >= 0 ? "text-green-500" : "text-red-500"}`}>{Number(profile.net_profit).toFixed(2)}</div></div>
               </div>
             )}
             <div className="flex gap-2">
               <button onClick={sendFriend} className="flex-1 h-10 rounded-lg bg-primary/15 text-primary font-medium hover:bg-primary/25 text-sm flex items-center justify-center gap-1.5"><UserPlus className="w-4 h-4" /> Add Friend</button>
-              <button onClick={toggleFollow} className={`flex-1 h-10 rounded-lg font-medium text-sm flex items-center justify-center gap-1.5 ${following ? "bg-pink-500/20 text-pink-500" : "bg-secondary border border-border/50"}`}>
+              <button onClick={toggleFollow} className={`flex-1 h-10 rounded-lg font-medium text-sm flex items-center justify-center gap-1.5 ${following ? "bg-pink-500/20 text-pink-500" : "bg-secondary"}`}>
                 <Heart className={`w-4 h-4 ${following ? "fill-current" : ""}`} /> {following ? "Following" : "Follow"}
               </button>
             </div>
