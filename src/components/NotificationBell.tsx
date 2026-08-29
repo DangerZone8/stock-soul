@@ -33,7 +33,7 @@ export function NotificationBell() {
         console.error("Error loading notifications:", error);
         return;
       }
-      setNotifications((data as Notification[]) || []);
+      setNotifications((data as unknown as Notification[]) || []);
     } catch (err) {
       console.error("Exception loading notifications:", err);
     }
