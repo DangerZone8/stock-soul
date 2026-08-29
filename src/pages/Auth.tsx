@@ -53,10 +53,14 @@ const AuthPage = () => {
         </Link>
 
         <h1 className="text-2xl font-semibold tracking-tight mb-1">
-          {mode === "signin" ? "Welcome back" : "Create account"}
+          {mode === "signin" ? "Welcome back" : mode === "signup" ? "Create account" : "Reset password"}
         </h1>
         <p className="text-sm text-muted-foreground mb-6">
-          {mode === "signin" ? "Sign in to keep earning daily coins." : "Sign up and get 100 coins + 50 daily."}
+          {mode === "signin"
+            ? "Sign in to keep earning daily coins."
+            : mode === "signup"
+            ? "Sign up and get 1000 coins + daily rewards."
+            : "Enter your email and we'll send you a reset link."}
         </p>
 
         <form onSubmit={submit} className="space-y-3">
