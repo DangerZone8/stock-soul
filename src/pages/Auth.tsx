@@ -8,7 +8,7 @@ import { toast } from "@/hooks/use-toast";
 const AuthPage = () => {
   const navigate = useNavigate();
   const { user, signIn, signUp } = useAuth();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
