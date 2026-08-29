@@ -53,7 +53,7 @@ const CopyTrading = () => {
 
   const loadTraders = useCallback(async () => {
     try {
-      const { data, error } = await supabase.rpc("get_copy_traders", { p_limit: 25 });
+      const { data, error } = await (supabase.rpc as any)("get_copy_traders", { p_limit: 25 });
       if (error) throw error;
       setTraders((data as CopyTrader[]) || []);
     } catch (err) {
@@ -64,7 +64,7 @@ const CopyTrading = () => {
   const loadMyCopies = useCallback(async () => {
     if (!user) return;
     try {
-      const { data, error } = await supabase.rpc("get_my_copy_relationships");
+      const { data, error } = await (supabase.rpc as any)("get_my_copy_relationships");
       if (error) throw error;
       setMyCopies((data as CopyRelation[]) || []);
     } catch (err) {
@@ -74,7 +74,7 @@ const CopyTrading = () => {
 
   const checkIfTrader = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase.from("copy_traders").select("description, min_copy_amount, max_copy_amount, performance_fee_percent").eq("user_id", user.id).maybeSingle();
+    const { data } = await (supabase.from as any)("copy_traders").select("description, min_copy_amount, max_copy_amount, performance_fee_percent").eq("user_id", user.id).maybeSingle();
     if (data) {
       setIsTrader(true);
       setTraderDesc(data.description || "");
@@ -105,7 +105,7 @@ const CopyTrading = () => {
     }
     setActionLoading(true);
     try {
-      const { data, error } = await supabase.rpc("start_copy_trading", {
+      const { data, error } = await (supabase.rpc as any)("start_copy_trading", {
         p_trader_id: trader.user_id,
         p_allocated_coins: amount,
       });
@@ -131,7 +131,7 @@ const CopyTrading = () => {
   const stopCopy = async (traderId: string) => {
     setActionLoading(true);
     try {
-      const { data, error } = await supabase.rpc("stop_copy_trading", { p_trader_id: traderId });
+      const { data, error } = await (supabase.rpc as any)("stop_copy_trading", { p_trader_id: traderId });
       if (error) throw error;
       const result = data?.[0];
       if (result?.success) {
@@ -153,7 +153,7 @@ const CopyTrading = () => {
     if (!user) return;
     setActionLoading(true);
     try {
-      const { data, error } = await supabase.rpc("become_copy_trader", {
+      const { data, error } = await (supabase.rpc as any)("become_copy_trader", {
         p_description: traderDesc || null,
         p_min_copy: Number(minCopy) || 100,
         p_max_copy: maxCopy ? Number(maxCopy) : null,
@@ -180,7 +180,7 @@ const CopyTrading = () => {
     if (!user) return;
     setActionLoading(true);
     try {
-      await supabase.from("copy_traders").update({ is_accepting_copiers: false }).eq("user_id", user.id);
+      await (supabase.from as any)("copy_traders").update({ is_accepting_copiers: false }).eq("user_id", user.id);
       setIsTrader(false);
       toast({ title: "Stopped", description: "You are no longer accepting copiers." });
       loadTraders();

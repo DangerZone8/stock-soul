@@ -3,12 +3,13 @@ import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { TrendingUp, Mail, Lock, Loader2, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 const AuthPage = () => {
   const navigate = useNavigate();
   const { user, signIn, signUp } = useAuth();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
@@ -20,6 +21,16 @@ const AuthPage = () => {
     e.preventDefault();
     if (mode === "signup" && username.trim().length < 3) {
       toast({ title: "Username required", description: "Pick a username (3+ chars).", variant: "destructive" });
+      return;
+    }
+    if (mode === "forgot") {
+      setBusy(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      setBusy(false);
+      if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+      else toast({ title: "Check your email", description: "We sent you a password reset link." });
       return;
     }
     setBusy(true);
@@ -42,10 +53,14 @@ const AuthPage = () => {
         </Link>
 
         <h1 className="text-2xl font-semibold tracking-tight mb-1">
-          {mode === "signin" ? "Welcome back" : "Create account"}
+          {mode === "signin" ? "Welcome back" : mode === "signup" ? "Create account" : "Reset password"}
         </h1>
         <p className="text-sm text-muted-foreground mb-6">
-          {mode === "signin" ? "Sign in to keep earning daily coins." : "Sign up and get 100 coins + 50 daily."}
+          {mode === "signin"
+            ? "Sign in to keep earning daily coins."
+            : mode === "signup"
+            ? "Sign up and get 1000 coins + daily rewards."
+            : "Enter your email and we'll send you a reset link."}
         </p>
 
         <form onSubmit={submit} className="space-y-3">
@@ -61,17 +76,27 @@ const AuthPage = () => {
             <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com"
               className="w-full h-11 pl-10 pr-3 rounded-lg bg-secondary/50 border border-border/50 focus:outline-none focus:ring-2 focus:ring-primary/40" />
           </div>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} placeholder="Password"
-              className="w-full h-11 pl-10 pr-3 rounded-lg bg-secondary/50 border border-border/50 focus:outline-none focus:ring-2 focus:ring-primary/40" />
-          </div>
+          {mode !== "forgot" && (
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} placeholder="Password"
+                className="w-full h-11 pl-10 pr-3 rounded-lg bg-secondary/50 border border-border/50 focus:outline-none focus:ring-2 focus:ring-primary/40" />
+            </div>
+          )}
           <button type="submit" disabled={busy}
             className="w-full h-11 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition flex items-center justify-center gap-2 disabled:opacity-60">
             {busy && <Loader2 className="w-4 h-4 animate-spin" />}
-            {mode === "signin" ? "Sign in" : "Sign up"}
+            {mode === "signin" ? "Sign in" : mode === "signup" ? "Sign up" : "Send reset link"}
           </button>
         </form>
+
+        {mode === "signin" && (
+          <div className="text-right mt-2">
+            <button onClick={() => setMode("forgot")} className="text-xs text-primary hover:underline">
+              Forgot password?
+            </button>
+          </div>
+        )}
 
         <p className="text-sm text-muted-foreground mt-5 text-center">
           {mode === "signin" ? "New here?" : "Already have an account?"}{" "}
