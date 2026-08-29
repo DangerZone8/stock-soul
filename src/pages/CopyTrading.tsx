@@ -53,7 +53,7 @@ const CopyTrading = () => {
 
   const loadTraders = useCallback(async () => {
     try {
-      const { data, error } = await supabase.rpc("get_copy_traders", { p_limit: 25 });
+      const { data, error } = await (supabase.rpc as any)("get_copy_traders", { p_limit: 25 });
       if (error) throw error;
       setTraders((data as CopyTrader[]) || []);
     } catch (err) {
@@ -153,7 +153,7 @@ const CopyTrading = () => {
     if (!user) return;
     setActionLoading(true);
     try {
-      const { data, error } = await supabase.rpc("become_copy_trader", {
+      const { data, error } = await (supabase.rpc as any)("become_copy_trader", {
         p_description: traderDesc || null,
         p_min_copy: Number(minCopy) || 100,
         p_max_copy: maxCopy ? Number(maxCopy) : null,
@@ -180,7 +180,7 @@ const CopyTrading = () => {
     if (!user) return;
     setActionLoading(true);
     try {
-      await supabase.from("copy_traders").update({ is_accepting_copiers: false }).eq("user_id", user.id);
+      await (supabase.from as any)("copy_traders").update({ is_accepting_copiers: false }).eq("user_id", user.id);
       setIsTrader(false);
       toast({ title: "Stopped", description: "You are no longer accepting copiers." });
       loadTraders();
