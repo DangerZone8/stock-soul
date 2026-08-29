@@ -76,17 +76,27 @@ const AuthPage = () => {
             <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com"
               className="w-full h-11 pl-10 pr-3 rounded-lg bg-secondary/50 border border-border/50 focus:outline-none focus:ring-2 focus:ring-primary/40" />
           </div>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} placeholder="Password"
-              className="w-full h-11 pl-10 pr-3 rounded-lg bg-secondary/50 border border-border/50 focus:outline-none focus:ring-2 focus:ring-primary/40" />
-          </div>
+          {mode !== "forgot" && (
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} placeholder="Password"
+                className="w-full h-11 pl-10 pr-3 rounded-lg bg-secondary/50 border border-border/50 focus:outline-none focus:ring-2 focus:ring-primary/40" />
+            </div>
+          )}
           <button type="submit" disabled={busy}
             className="w-full h-11 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition flex items-center justify-center gap-2 disabled:opacity-60">
             {busy && <Loader2 className="w-4 h-4 animate-spin" />}
-            {mode === "signin" ? "Sign in" : "Sign up"}
+            {mode === "signin" ? "Sign in" : mode === "signup" ? "Sign up" : "Send reset link"}
           </button>
         </form>
+
+        {mode === "signin" && (
+          <div className="text-right mt-2">
+            <button onClick={() => setMode("forgot")} className="text-xs text-primary hover:underline">
+              Forgot password?
+            </button>
+          </div>
+        )}
 
         <p className="text-sm text-muted-foreground mt-5 text-center">
           {mode === "signin" ? "New here?" : "Already have an account?"}{" "}
