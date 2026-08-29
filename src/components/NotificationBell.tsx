@@ -41,7 +41,7 @@ export function NotificationBell() {
 
   const markAsRead = async (id: string) => {
     try {
-      await supabase.from("notifications").update({ read: true }).eq("id", id);
+      await (supabase.from as any)("notifications").update({ read: true }).eq("id", id);
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
     } catch (err) {
       console.error("Error marking notification as read:", err);
@@ -51,7 +51,7 @@ export function NotificationBell() {
   const markAllAsRead = async () => {
     if (!user) return;
     try {
-      await supabase.from("notifications").update({ read: true }).eq("user_id", user.id).eq("read", false);
+      await (supabase.from as any)("notifications").update({ read: true }).eq("user_id", user.id).eq("read", false);
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     } catch (err) {
       console.error("Error marking all notifications as read:", err);
