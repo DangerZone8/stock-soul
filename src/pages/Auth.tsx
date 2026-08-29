@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { TrendingUp, Mail, Lock, Loader2, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 const AuthPage = () => {
@@ -20,6 +21,16 @@ const AuthPage = () => {
     e.preventDefault();
     if (mode === "signup" && username.trim().length < 3) {
       toast({ title: "Username required", description: "Pick a username (3+ chars).", variant: "destructive" });
+      return;
+    }
+    if (mode === "forgot") {
+      setBusy(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      setBusy(false);
+      if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+      else toast({ title: "Check your email", description: "We sent you a password reset link." });
       return;
     }
     setBusy(true);
