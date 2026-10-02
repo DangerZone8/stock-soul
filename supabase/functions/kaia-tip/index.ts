@@ -123,7 +123,26 @@ serve(async (req) => {
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
+    if (!LOVABLE_API_KEY) {
+      // Kaia API key missing, return fallback tip without AI
+      const tech = Array.isArray(closes) ? computeTechnicals(closes, Array.isArray(volumes) ? volumes : []) : null;
+      const headlines = await fetchNewsHeadlines(symbol);
+      return new Response(JSON.stringify({
+        action: "hold",
+        confidence: "low",
+        sentiment: "neutral",
+        entry: price,
+        stop: price * 0.97,
+        target: price * 1.05,
+        move_reason: "Kaia is warming up...",
+        take: "Chart looks stable. Watch for volume confirmation before making a move.",
+        headlines,
+        technicals: tech,
+        isOffline: true
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const tech = Array.isArray(closes) ? computeTechnicals(closes, Array.isArray(volumes) ? volumes : []) : null;
     const headlines = await fetchNewsHeadlines(symbol);
@@ -138,7 +157,7 @@ serve(async (req) => {
 - RSI(14): ${tech.rsi} | Volume trend: ${tech.volTrend}
 - Points used: ${tech.points}` : "Technicals: not enough chart data.";
 
-    const systemPrompt = `You are Kaia, the sharp, decisive market analyst of Rudra's Empire. You give bold, accurate, ACTIONABLE trading calls based on real data — never default to "hold" unless signals are genuinely mixed.
+    const systemPrompt = `You are Kaia, the sharp, decisive market analyst of Rudra's Empire. You give bold, accurate, ACTIONABLE trading calls based on real data — never default to "hold" unless signals genuinely conflict.
 
 Decision framework:
 - STRONG BUY: price making higher highs AND momentum > +1% AND (RSI 50-70 or rising) AND volume rising. Or strong bullish news catalyst.
@@ -152,7 +171,7 @@ Confidence:
 - medium: 2 of 3 main signals align.
 - low: signals weak or conflicting (often pairs with hold).
 
-Price targets MUST be derived from the actual data: buy entry near current support (recent low / SMA), stop below it, target near recent high or +5-10% based on momentum. Always cite specific numbers from the technicals provided.
+Price targets MUST be derived from the actual data: buy entry near current support (recent low / SMA), stop below it, target near recent high or +5-10% based on momentum. Always cite specific numbers.
 
 Be decisive and SPECIFIC. Different stocks must get different calls — vary based on the actual data, not a default.`;
 
