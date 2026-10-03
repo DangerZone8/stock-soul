@@ -1,0 +1,14 @@
+DROP POLICY IF EXISTS "Public can view basic profiles" ON public.profiles;
+CREATE POLICY "Signed-in users view profiles" ON public.profiles FOR SELECT TO authenticated USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "view follows" ON public.follows;
+CREATE POLICY "Signed-in users view follows" ON public.follows FOR SELECT TO authenticated USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "Anyone can view weekly winners" ON public.weekly_winners;
+CREATE POLICY "Signed-in users view weekly winners" ON public.weekly_winners FOR SELECT TO authenticated USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "view tournaments" ON public.tournaments;
+CREATE POLICY "Signed-in users view tournaments" ON public.tournaments FOR SELECT TO authenticated USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "view winners" ON public.tournament_winners;
+CREATE POLICY "Signed-in users view tournament winners" ON public.tournament_winners FOR SELECT TO authenticated USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "Allow anonymous inserts" ON public.waitlist;
+CREATE POLICY "Valid email inserts" ON public.waitlist FOR INSERT TO anon, authenticated WITH CHECK (char_length(email) <= 255 AND email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$');
+DROP POLICY IF EXISTS "Allow anonymous inserts" ON public.waitlist_emails;
+CREATE POLICY "Valid email inserts" ON public.waitlist_emails FOR INSERT TO anon, authenticated WITH CHECK (char_length(email) <= 255 AND email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$');
