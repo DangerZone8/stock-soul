@@ -32,19 +32,22 @@ const buildQuotePayload = (symbol: string, price: number, previousClose?: number
 
 async function fetchYahooQuote(symbol: string) {
   const yahooSymbol = CRYPTO_SYMBOL_MAP[symbol] ?? symbol;
-  const res = await fetch(
-    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=1d&range=2d`,
-    {
-      headers: {
-        "User-Agent": "Mozilla/5.0",
-        Accept: "application/json",
-      },
+  let res: Response | null = null;
+  let lastErr: unknown = null;
+  for (const host of ["query1", "query2", "query1", "query2"]) {
+    try {
+      const r = await fetch(
+        `https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=1d&range=2d`,
+        { headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json" } }
+      );
+      if (r.ok) { res = r; break; }
+      lastErr = new Error(`Yahoo status ${r.status}`);
+    } catch (e) {
+      lastErr = e;
     }
-  );
-
-  if (!res.ok) {
-    throw new Error(`Yahoo request failed with status ${res.status}`);
+    await new Promise((ok) => setTimeout(ok, 250));
   }
+  if (!res) throw lastErr ?? new Error("Yahoo unavailable");
 
   const data = await res.json();
   const meta = data?.chart?.result?.[0]?.meta;
@@ -95,8 +98,8 @@ serve(async (req) => {
     });
   } catch (e) {
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Internal error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: "Price temporarily unavailable", unavailable: true }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
