@@ -5,6 +5,35 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+type YahooQuote = { symbol?: string };
+type YahooChartResult = {
+  meta?: {
+    symbol?: string;
+    currency?: string;
+    regularMarketPrice?: number;
+    chartPreviousClose?: number;
+    previousClose?: number;
+    regularMarketTime?: number;
+  };
+  timestamp?: number[];
+  indicators?: {
+    quote?: Array<{
+      close?: (number | null)[];
+      volume?: (number | null)[];
+      open?: (number | null)[];
+      high?: (number | null)[];
+      low?: (number | null)[];
+    }>;
+  };
+};
+type YahooPayload = {
+  chart?: {
+    error?: { description?: string } | null;
+    result?: YahooChartResult[] | null;
+  };
+  quotes?: YahooQuote[];
+};
+
 type CacheEntry = { expiresAt: number; payload: unknown };
 const responseCache = new Map<string, CacheEntry>();
 const CACHE_LIMIT = 250;
@@ -37,7 +66,7 @@ const setCached = (key: string, payload: unknown, ttlMs: number) => {
   responseCache.set(key, { payload, expiresAt: Date.now() + ttlMs });
 };
 
-const fetchYahooJson = async (path: string): Promise<any> => {
+const fetchYahooJson = async (path: string): Promise<YahooPayload> => {
   let lastError: Error | null = null;
   for (const host of ["query1.finance.yahoo.com", "query2.finance.yahoo.com"]) {
     try {
@@ -49,7 +78,7 @@ const fetchYahooJson = async (path: string): Promise<any> => {
         lastError = new Error(`Yahoo Finance returned HTTP ${response.status}`);
         continue;
       }
-      const payload = await response.json();
+      const payload = await response.json() as YahooPayload;
       if (payload?.chart?.error) {
         lastError = new Error(payload.chart.error.description || "Yahoo Finance returned a chart error");
         continue;
@@ -83,7 +112,7 @@ serve(async (req) => {
       });
       const payload = await fetchYahooJson(`/v1/finance/search?${params.toString()}`);
       const quotes = (payload?.quotes || [])
-        .filter((quote: { symbol?: string }) => typeof quote.symbol === "string" && quote.symbol.length > 0)
+        .filter((quote) => typeof quote.symbol === "string" && quote.symbol.length > 0)
         .slice(0, 8);
       const result = { quotes };
       setCached(cacheKey, result, 60_000);
