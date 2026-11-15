@@ -72,7 +72,7 @@ const fetchYahooJson = async (path: string): Promise<YahooPayload> => {
     try {
       const response = await fetch(`https://${host}${path}`, {
         headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json" },
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(6000),
       });
       if (!response.ok) {
         lastError = new Error(`Yahoo Finance returned HTTP ${response.status}`);
