@@ -11,9 +11,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { marketFunctionUrl } from "@/lib/market-data";
 
-const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-const REFRESH_MS = 3000;
+const REFRESH_MS = 15000;
 
 const FOREX_PAIRS = [
   { label: "EUR/USD", symbol: "EURUSD=X" },
@@ -71,18 +71,24 @@ const ForexInvestor = () => {
   const [flash, setFlash] = useState<{ kind: "profit" | "loss"; text: string } | null>(null);
   const [assetType, setAssetType] = useState<"forex" | "crypto">("forex");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const quoteRequestRef = useRef(0);
 
   const fetchQuote = useCallback(async (symbol: string) => {
+    const requestId = ++quoteRequestRef.current;
     try {
-      const res = await fetch(
-        `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/stock-chart?symbol=${encodeURIComponent(symbol)}&interval=1m&range=1d&t=${Date.now()}`,
-        { cache: "no-store" }
-      );
+      const endpoint = new URL(marketFunctionUrl("stock-chart"));
+      endpoint.searchParams.set("symbol", symbol);
+      endpoint.searchParams.set("interval", "1m");
+      endpoint.searchParams.set("range", "1d");
+      const res = await fetch(endpoint.toString(), { cache: "no-store" });
+      if (!res.ok) throw new Error(`Market data request failed (${res.status})`);
       const data = await res.json();
       if (data.error) throw new Error(data.error);
-      setQuote(data);
+      if (requestId === quoteRequestRef.current && data.symbol === symbol && Number.isFinite(data.regularMarketPrice)) {
+        setQuote(data);
+      }
     } catch {
-      /* ignore */
+      // Keep the last good quote visible; a later refresh will retry.
     }
   }, []);
 
@@ -96,7 +102,7 @@ const ForexInvestor = () => {
     const prices: Record<string, { price: number; currency: string }> = {};
     await Promise.all(hs.map(async (h) => {
       try {
-        const r = await fetch(`https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/stock-chart?symbol=${encodeURIComponent(h.symbol)}&interval=1m&range=1d&t=${Date.now()}`, { cache: "no-store" });
+        const r = await fetch(`${marketFunctionUrl("stock-chart")}?symbol=${encodeURIComponent(h.symbol)}&interval=1m&range=1d&t=${Date.now()}`, { cache: "no-store" });
         const d = await r.json();
         if (d?.regularMarketPrice) prices[h.symbol] = { price: d.regularMarketPrice, currency: d.currency || h.currency };
       } catch { /* ignore */ }
@@ -128,7 +134,7 @@ const ForexInvestor = () => {
     }
     setSearching(true);
     try {
-      const r = await fetch(`https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/stock-chart?q=${encodeURIComponent(q)}`);
+      const r = await fetch(`${marketFunctionUrl("stock-chart")}?q=${encodeURIComponent(q)}`);
       const d = await r.json();
       const first = d?.quotes?.[0]?.symbol;
       if (first) {
