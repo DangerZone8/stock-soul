@@ -14,9 +14,9 @@ import { toast } from "@/hooks/use-toast";
 import { FriendsTab, ProfileTab, UserDialog } from "@/components/SocialPanel";
 import { DreamGirlChat } from "@/components/DreamGirlChat";
 import { UserCircle } from "lucide-react";
+import { marketFunctionUrl } from "@/lib/market-data";
 
-const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-const REFRESH_MS = 1000;
+const REFRESH_MS = 15000;
 
 const POPULAR = [
   { label: "NVIDIA", symbol: "NVDA" },
@@ -73,6 +73,7 @@ const StockInvestor = () => {
   const [leaderboard, setLeaderboard] = useState<LeaderRow[]>([]);
   const [refCode, setRefCode] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const quoteRequestRef = useRef(0);
   const [openUser, setOpenUser] = useState<{ id: string; name: string } | null>(null);
 
   const loadLeaderboard = useCallback(async (kind: "coins" | "profit") => {
@@ -112,16 +113,21 @@ const StockInvestor = () => {
   };
 
   const fetchQuote = useCallback(async (symbol: string) => {
+    const requestId = ++quoteRequestRef.current;
     try {
-      const res = await fetch(
-        `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/stock-chart?symbol=${encodeURIComponent(symbol)}&interval=1m&range=1d&t=${Date.now()}`,
-        { cache: "no-store" }
-      );
+      const endpoint = new URL(marketFunctionUrl("stock-chart"));
+      endpoint.searchParams.set("symbol", symbol);
+      endpoint.searchParams.set("interval", "1m");
+      endpoint.searchParams.set("range", "1d");
+      const res = await fetch(endpoint.toString(), { cache: "no-store" });
+      if (!res.ok) throw new Error(`Market data request failed (${res.status})`);
       const data = await res.json();
       if (data.error) throw new Error(data.error);
-      setQuote(data);
+      if (requestId === quoteRequestRef.current && data.symbol === symbol && Number.isFinite(data.regularMarketPrice)) {
+        setQuote(data);
+      }
     } catch {
-      /* ignore */
+      // Keep the last good quote visible; a later refresh will retry.
     }
   }, []);
 
@@ -135,7 +141,7 @@ const StockInvestor = () => {
     const prices: Record<string, { price: number; currency: string }> = {};
     await Promise.all(hs.map(async (h) => {
       try {
-        const r = await fetch(`https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/stock-chart?symbol=${encodeURIComponent(h.symbol)}&interval=1m&range=1d&t=${Date.now()}`, { cache: "no-store" });
+        const r = await fetch(`${marketFunctionUrl("stock-chart")}?symbol=${encodeURIComponent(h.symbol)}&interval=1m&range=1d&t=${Date.now()}`, { cache: "no-store" });
         const d = await r.json();
         if (d?.regularMarketPrice) prices[h.symbol] = { price: d.regularMarketPrice, currency: d.currency || h.currency };
       } catch { /* ignore */ }
@@ -165,7 +171,7 @@ const StockInvestor = () => {
     }
     setSearching(true);
     try {
-      const r = await fetch(`https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/stock-chart?q=${encodeURIComponent(q)}`);
+      const r = await fetch(`${marketFunctionUrl("stock-chart")}?q=${encodeURIComponent(q)}`);
       const d = await r.json();
       const first = d?.quotes?.[0]?.symbol;
       if (first) { setActiveTicker(first); setQuery(""); }
