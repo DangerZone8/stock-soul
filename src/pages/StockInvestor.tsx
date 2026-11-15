@@ -220,7 +220,15 @@ const StockInvestor = () => {
   const totalNetProfit = realizedPnL + unrealizedPnL;
   const rank = rankFor(profile?.coins ?? 0);
 
-  const validPts = (quote?.timestamps || []).map((t, i) => ({ t, c: quote?.closes?.[i] })).filter(p => p.c != null && Number.isFinite(p.c as number));
+  const validPts = (quote?.timestamps || []).map((t, i) => ({ t, c: quote?.closes?.[i] }))
+    .filter(p => p.c != null && Number.isFinite(p.c as number));
+  if (quote && Number.isFinite(quote.regularMarketPrice) && quote.regularMarketPrice > 0) {
+    const liveBucket = Math.floor(Date.now() / 60000) * 60;
+    const currentPoint = validPts.find(point => point.t === liveBucket);
+    if (currentPoint) currentPoint.c = quote.regularMarketPrice;
+    else validPts.push({ t: liveBucket, c: quote.regularMarketPrice });
+    validPts.sort((a, b) => a.t - b.t);
+  }
   const chartConfig = {
     labels: validPts.map(p => new Date(p.t * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })),
     datasets: [{
