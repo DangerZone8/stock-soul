@@ -52,7 +52,7 @@ export function TickerTape() {
       if (requestInFlight.current) return;
       requestInFlight.current = true;
       try {
-        const results = await Promise.all(DEFAULT_SYMBOLS.map(async (symbol) => {
+        const settled = await Promise.allSettled(DEFAULT_SYMBOLS.map(async (symbol) => {
           const endpoint = new URL(marketFunctionUrl("stock-chart"));
           endpoint.searchParams.set("symbol", symbol);
           endpoint.searchParams.set("interval", "1d");
@@ -65,8 +65,11 @@ export function TickerTape() {
           }
           return [symbol, quote] as const;
         }));
-        if (!disposed) {
-          setQuotes(previous => ({ ...previous, ...Object.fromEntries(results) }));
+        const successfulQuotes = settled
+          .filter((result): result is PromiseFulfilledResult<readonly [string, MarketQuote]> => result.status === "fulfilled")
+          .map(result => result.value);
+        if (!disposed && successfulQuotes.length) {
+          setQuotes(previous => ({ ...previous, ...Object.fromEntries(successfulQuotes) }));
         }
       } catch {
         // Retain the last successful quotes; unavailable quotes stay blank.
