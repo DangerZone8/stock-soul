@@ -1,83 +1,119 @@
-import { useEffect, useRef } from "react";
-import useStockData from "@/hooks/useStockData";
+import { useEffect, useRef, useState } from "react";
+import { marketFunctionUrl } from "@/lib/market-data";
 
-const DEFAULT_SYMBOLS = ["AAPL", "TSLA", "NVDA", "SPY", "AMZN", "MSFT", "GOOGL", "META", "BTC", "ETH", "QQQ", "AMD"];
+const DEFAULT_SYMBOLS = ["AAPL", "TSLA", "NVDA", "SPY", "AMZN", "MSFT", "GOOGL", "META", "BTC-USD", "ETH-USD", "QQQ", "AMD"];
+const REFRESH_MS = 30000;
 
-const FALLBACK_DATA = [
-  { symbol: "AAPL", value: "198.11", change: 0.9 },
-  { symbol: "TSLA", value: "178.22", change: 2.3 },
-  { symbol: "NVDA", value: "124.60", change: 1.8 },
-  { symbol: "SPY", value: "512.40", change: 0.4 },
-  { symbol: "AMZN", value: "182.50", change: 1.1 },
-  { symbol: "MSFT", value: "415.30", change: -0.4 },
-  { symbol: "GOOGL", value: "155.72", change: -0.7 },
-  { symbol: "META", value: "505.15", change: 3.2 },
-  { symbol: "BTC", value: "67,420", change: 2.1 },
-  { symbol: "ETH", value: "3,512", change: 1.5 },
-  { symbol: "QQQ", value: "438.90", change: 0.6 },
-  { symbol: "AMD", value: "164.30", change: -1.2 },
-];
+interface MarketQuote {
+  symbol: string;
+  currency: string;
+  regularMarketPrice: number;
+  previousClose: number;
+}
 
-function TickerItem({ symbol }: { symbol: string }) {
-  const { data, loading, error } = useStockData(symbol);
+const displaySymbol = (symbol: string) => symbol.replace(/-USD$/, "");
 
-  if (loading || error || !data) {
-    const fb = FALLBACK_DATA.find(f => f.symbol === symbol);
-    if (!fb) return null;
-    return (
-      <span className="font-mono text-xs flex items-center gap-1.5 shrink-0">
-        <span className="text-muted-foreground font-semibold">{fb.symbol}</span>
-        <span className="text-foreground/60">${fb.value}</span>
-        <span className={fb.change >= 0 ? "ticker-positive" : "ticker-negative"}>
-          {fb.change >= 0 ? "▲" : "▼"} {Math.abs(fb.change).toFixed(2)}%
-        </span>
-      </span>
-    );
-  }
-
-  const price = parseFloat(data['05. price']).toFixed(2);
-  const changePercent = parseFloat(data['10. change percent']).toFixed(2);
-  const isUp = parseFloat(changePercent) >= 0;
+function TickerItem({ symbol, quote }: { symbol: string; quote?: MarketQuote }) {
+  const price = quote?.regularMarketPrice;
+  const previousClose = quote?.previousClose;
+  const changePercent = price != null && previousClose != null && previousClose > 0
+    ? ((price - previousClose) / previousClose) * 100
+    : null;
+  const isUp = (changePercent ?? 0) >= 0;
+  const formattedPrice = price != null && Number.isFinite(price)
+    ? new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: quote?.currency || "USD",
+        maximumFractionDigits: price < 10 ? 4 : 2,
+      }).format(price)
+    : "—";
 
   return (
-    <span className="font-mono text-xs flex items-center gap-1.5 shrink-0">
-      <span className="text-muted-foreground font-semibold">{symbol}</span>
-      <span className="text-foreground/60">${price}</span>
-      <span className={isUp ? "ticker-positive" : "ticker-negative"}>
-        {isUp ? "▲" : "▼"} {Math.abs(parseFloat(changePercent))}%
-      </span>
+    <span className="font-mono text-xs flex items-center gap-1.5 shrink-0" title={quote ? `Last refreshed market quote for ${symbol}` : `Waiting for market data for ${symbol}`}>
+      <span className="text-muted-foreground font-semibold">{displaySymbol(symbol)}</span>
+      <span className="text-foreground/60">{formattedPrice}</span>
+      {changePercent != null && (
+        <span className={isUp ? "ticker-positive" : "ticker-negative"}>
+          {isUp ? "▲" : "▼"} {Math.abs(changePercent).toFixed(2)}%
+        </span>
+      )}
     </span>
   );
 }
 
 export function TickerTape() {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const allSymbols = [...DEFAULT_SYMBOLS, ...DEFAULT_SYMBOLS];
+  const requestInFlight = useRef(false);
+  const [quotes, setQuotes] = useState<Record<string, MarketQuote>>({});
 
   useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    let animationId: number;
-    let pos = 0;
-    const speed = 0.5;
-
-    const animate = () => {
-      pos -= speed;
-      if (Math.abs(pos) >= el.scrollWidth / 2) pos = 0;
-      el.style.transform = `translateX(${pos}px)`;
-      animationId = requestAnimationFrame(animate);
+    let disposed = false;
+    const fetchQuotes = async () => {
+      if (requestInFlight.current) return;
+      requestInFlight.current = true;
+      try {
+        const results = await Promise.all(DEFAULT_SYMBOLS.map(async (symbol) => {
+          const endpoint = new URL(marketFunctionUrl("stock-chart"));
+          endpoint.searchParams.set("symbol", symbol);
+          endpoint.searchParams.set("interval", "1d");
+          endpoint.searchParams.set("range", "5d");
+          const response = await fetch(endpoint.toString(), { cache: "no-store" });
+          if (!response.ok) throw new Error(`Quote request failed for ${symbol}`);
+          const quote = await response.json() as MarketQuote & { error?: string };
+          if (quote.error || quote.symbol !== symbol || !Number.isFinite(quote.regularMarketPrice)) {
+            throw new Error(`Invalid quote returned for ${symbol}`);
+          }
+          return [symbol, quote] as const;
+        }));
+        if (!disposed) {
+          setQuotes(previous => ({ ...previous, ...Object.fromEntries(results) }));
+        }
+      } catch {
+        // Retain the last successful quotes; unavailable quotes stay blank.
+      } finally {
+        requestInFlight.current = false;
+      }
     };
 
-    animationId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationId);
+    void fetchQuotes();
+    const interval = window.setInterval(fetchQuotes, REFRESH_MS);
+    return () => {
+      disposed = true;
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  useEffect(() => {
+    const element = scrollRef.current;
+    if (!element) return;
+    let animationId = 0;
+    let position = 0;
+    let previousFrame = 0;
+    const speed = 28; // pixels per second
+
+    const animate = (timestamp: number) => {
+      const delta = previousFrame ? Math.min(timestamp - previousFrame, 50) : 0;
+      previousFrame = timestamp;
+      position -= (speed * delta) / 1000;
+      const loopWidth = element.scrollWidth / 2;
+      if (loopWidth > 0 && Math.abs(position) >= loopWidth) position = 0;
+      element.style.transform = `translate3d(${position}px, 0, 0)`;
+      animationId = window.requestAnimationFrame(animate);
+    };
+
+    animationId = window.requestAnimationFrame(animate);
+    return () => window.cancelAnimationFrame(animationId);
   }, []);
 
   return (
     <div className="w-full overflow-hidden bg-card/30 border-b border-border/30 py-2.5 backdrop-blur-md">
-      <div ref={scrollRef} className="flex whitespace-nowrap gap-8">
-        {allSymbols.map((symbol, i) => (
-          <TickerItem key={`${symbol}-${i}`} symbol={symbol} />
-        ))}
+      <div ref={scrollRef} className="flex w-max whitespace-nowrap gap-8 will-change-transform">
+        <div className="flex shrink-0 gap-8">
+          {DEFAULT_SYMBOLS.map(symbol => <TickerItem key={symbol} symbol={symbol} quote={quotes[symbol]} />)}
+        </div>
+        <div className="flex shrink-0 gap-8" aria-hidden="true">
+          {DEFAULT_SYMBOLS.map(symbol => <TickerItem key={symbol} symbol={symbol} quote={quotes[symbol]} />)}
+        </div>
       </div>
     </div>
   );
