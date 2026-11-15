@@ -150,6 +150,7 @@ const StockInvestor = () => {
   }, []);
 
   useEffect(() => { fetchHoldings(); }, [fetchHoldings]);
+  useEffect(() => { setQuote(null); }, [activeTicker]);
   useEffect(() => { if (holdings.length) fetchLivePricesForHoldings(holdings); }, [holdings, fetchLivePricesForHoldings]);
 
   useEffect(() => {
