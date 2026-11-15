@@ -111,7 +111,7 @@ const ForexInvestor = () => {
   }, []);
 
   useEffect(() => { fetchHoldings(); }, [fetchHoldings]);
-  useEffect(() => { setQuote(null); }, [activeTicker]);
+  useEffect(() => { setQuote(null); }, [activePair]);
   useEffect(() => { if (holdings.length) fetchLivePricesForHoldings(holdings); }, [holdings, fetchLivePricesForHoldings]);
 
   useEffect(() => {
