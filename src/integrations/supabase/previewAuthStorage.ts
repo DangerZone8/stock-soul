@@ -36,6 +36,11 @@ export function brokeredPreviewStorage() {
       const requestId = newId();
       let done = false;
       let finish: (r: { ok: boolean; value?: string | null } | null) => void = () => undefined;
+      const onMessage = (e: MessageEvent) => {
+        if (editorOrigins.indexOf(e.origin) < 0) return;
+        const d = e.data;
+        if (d && d.type === RESULT && d.requestId === requestId) finish(d);
+      };
       const timer = setTimeout(() => finish(null), TIMEOUT);
       finish = (r) => {
         if (done) return;
@@ -43,11 +48,6 @@ export function brokeredPreviewStorage() {
         clearTimeout(timer);
         window.removeEventListener('message', onMessage);
         resolve(r);
-      };
-      const onMessage = (e: MessageEvent) => {
-        if (editorOrigins.indexOf(e.origin) < 0) return;
-        const d = e.data;
-        if (d && d.type === RESULT && d.requestId === requestId) finish(d);
       };
       window.addEventListener('message', onMessage);
       const msg: Record<string, unknown> = { type, requestId, projectId, key };
