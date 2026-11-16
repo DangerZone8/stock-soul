@@ -16,10 +16,9 @@ import { Navbar } from "@/components/Navbar";
 import { CandlestickBackground } from "@/components/CandlestickBackground";
 import { Footer } from "@/components/Footer";
 import { DreamGirlChat } from "@/components/DreamGirlChat";
+import { marketFunctionUrl } from "@/lib/market-data";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler);
-
-const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 
 const POPULAR_TICKERS = [
   { label: "NVIDIA", symbol: "NVDA" },
@@ -55,7 +54,7 @@ interface KaiaTip {
   headlines?: string[];
 }
 
-const LIVE_REFRESH_MS = 1000;
+const LIVE_REFRESH_MS = 15000;
 const TIP_REFRESH_MS = 90000;
 const MAX_LIVE_POINTS = 600;
 
@@ -82,12 +81,20 @@ const buildLiveChartData = (incoming: ChartData, previous?: ChartData | null): C
     }
   });
 
-  const liveTimestamp = Math.floor(Date.now() / 1000);
+  // Keep one point per one-minute candle instead of appending a duplicate
+  // point on every polling tick. This also updates the current candle in place.
+  const liveTimestamp = Math.floor(Date.now() / 60000) * 60;
   const livePrice = incoming.regularMarketPrice;
-  if (Number.isFinite(livePrice)) {
-    timestamps.push(liveTimestamp);
-    closes.push(livePrice);
-    volumes.push(incoming.volumes?.at(-1) ?? null);
+  if (Number.isFinite(livePrice) && livePrice > 0) {
+    const liveIndex = timestamps.indexOf(liveTimestamp);
+    if (liveIndex >= 0) {
+      closes[liveIndex] = livePrice;
+      volumes[liveIndex] = incoming.volumes?.at(-1) ?? volumes[liveIndex] ?? null;
+    } else {
+      timestamps.push(liveTimestamp);
+      closes.push(livePrice);
+      volumes.push(incoming.volumes?.at(-1) ?? null);
+    }
   }
 
   const sorted = timestamps.map((timestamp, index) => ({
@@ -117,29 +124,45 @@ const LiveMarket = () => {
   const [tipLoading, setTipLoading] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const tipIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const isFetchingRef = useRef(false);
+  const chartAbortRef = useRef<AbortController | null>(null);
+  const chartRequestIdRef = useRef(0);
   const isFetchingTipRef = useRef(false);
 
   const fetchChart = useCallback(async (symbol: string, mode: "initial" | "live" = "live") => {
-    if (isFetchingRef.current) return;
-    isFetchingRef.current = true;
+    // A ticker change supersedes any in-flight request. Older responses must
+    // never overwrite the newly selected symbol.
+    chartAbortRef.current?.abort();
+    const controller = new AbortController();
+    chartAbortRef.current = controller;
+    const requestId = ++chartRequestIdRef.current;
     if (mode === "initial") setLoading(true);
     setError(null);
     try {
-      const res = await fetch(
-        `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/stock-chart?symbol=${encodeURIComponent(symbol)}&interval=1m&range=1d&t=${Date.now()}`,
-        { cache: "no-store" }
-      );
-      if (!res.ok) throw new Error("Failed to fetch");
+      const endpoint = marketFunctionUrl("stock-chart");
+      const url = new URL(endpoint);
+      url.searchParams.set("symbol", symbol);
+      url.searchParams.set("interval", "1m");
+      url.searchParams.set("range", "1d");
+      const res = await fetch(url.toString(), { cache: "no-store", signal: controller.signal });
+      if (!res.ok) throw new Error(`Market data request failed (${res.status})`);
       const data = await res.json() as ChartData & { error?: string };
       if (data.error) throw new Error(data.error);
+      if (requestId !== chartRequestIdRef.current) return;
+      if (data.symbol !== symbol || !Number.isFinite(data.regularMarketPrice) || data.regularMarketPrice <= 0) {
+        throw new Error(`No valid market quote returned for ${symbol}`);
+      }
       setChartData(prev => buildLiveChartData(data, mode === "live" ? prev : null));
       setLastUpdated(new Date());
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to fetch data");
+      if (e instanceof DOMException && e.name === "AbortError") return;
+      if (requestId === chartRequestIdRef.current) {
+        setError(e instanceof Error ? e.message : "Failed to fetch data");
+      }
     } finally {
-      if (mode === "initial") setLoading(false);
-      isFetchingRef.current = false;
+      if (requestId === chartRequestIdRef.current) {
+        if (mode === "initial") setLoading(false);
+        chartAbortRef.current = null;
+      }
     }
   }, []);
 
@@ -152,7 +175,7 @@ const LiveMarket = () => {
       const cleanCloses = (closes || []).filter((c): c is number => c != null && Number.isFinite(c));
       const cleanVols = (volumes || []).map((v) => (v == null ? 0 : v));
       const res = await fetch(
-        `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/kaia-tip`,
+        marketFunctionUrl("kaia-tip"),
         {
           method: "POST",
           headers: {
@@ -180,6 +203,7 @@ const LiveMarket = () => {
     intervalRef.current = setInterval(() => fetchChart(activeTicker, "live"), LIVE_REFRESH_MS);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      chartAbortRef.current?.abort();
     };
   }, [activeTicker, fetchChart]);
 
@@ -217,7 +241,7 @@ const LiveMarket = () => {
     setError(null);
     try {
       const res = await fetch(
-        `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/stock-chart?q=${encodeURIComponent(q)}`
+        `${marketFunctionUrl("stock-chart")}?q=${encodeURIComponent(q)}`
       );
       const data = await res.json();
       const first = data?.quotes?.[0]?.symbol;
