@@ -1,0 +1,22 @@
+name: Live market feed smoke test
+
+on:
+  pull_request:
+    paths:
+      - "scripts/smoke-market-feed.mjs"
+      - "supabase/functions/stock-chart/**"
+      - "supabase/config.toml"
+      - ".github/workflows/market-feed-smoke.yml"
+  workflow_dispatch:
+
+jobs:
+  live-feed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Poll the deployed Supabase market feed twice
+        run: node scripts/smoke-market-feed.mjs
